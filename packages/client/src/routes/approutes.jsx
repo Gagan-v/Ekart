@@ -6,6 +6,7 @@ const AppRoutes = () => {
     <div className="approutes">
       <Routes>
         <Route path="/" element={<Home />} />
+        {/* Add more pages here */}
       </Routes>
     </div>
   );
