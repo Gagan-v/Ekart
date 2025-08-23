@@ -6,11 +6,25 @@ const Carousel = ({ slides, autoplay = true, interval, loop = true }) => {
 
   // Autoplay logic
   useEffect(() => {
-    if (!autoplay || len <= 1) return;
+    if (!autoplay || len <= 1) return; // if autoplay is false or only 1 slide
 
+    //timer
     const id = setInterval(() => {
       setCurrentIndex((prev) => {
         if (prev === len - 1) return loop ? 0 : prev;
+        //`prev === len - 1`** → This checks if we are at the last slide.
+        // If true → we either go back to the first slide (`0`) if looping is enabled.
+        // If false → we just move forward to the next slide.
+        // ✅ Example: If `len = 3` (3 slides → indexes `0,1,2`)
+        // - When `prev = 0` → move to `1`
+        // - When `prev = 1` → move to `2`
+        // - When `prev = 2` (`len - 1 = 2`) →
+        //   - If `loop = true`, go back to `0`
+        //   - If `loop = false`, stay at `2`
+
+        // 👉 So:
+        // - `prev` = current slide index
+        // - `len - 1` = position/index of the **last slide**
         return prev + 1;
       });
     }, interval);
@@ -20,8 +34,8 @@ const Carousel = ({ slides, autoplay = true, interval, loop = true }) => {
 
   // navigation
   const goToNext = () =>
-    setCurrentIndex((prev) =>
-      prev === len - 1 ? (loop ? 0 : prev) : prev + 1
+    setCurrentIndex(
+      (prev) => (prev === len - 1 ? (loop ? 0 : prev) : prev + 1) //check if last slide loop true then slide[0] else + 1
     );
 
   const goToPrev = () =>
