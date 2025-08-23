@@ -1,11 +1,6 @@
 import { useEffect, useState } from "react";
 
-const Carousel = ({
-  slides,
-  autoplay = true,
-  interval = 10000,
-  loop = true,
-}) => {
+const Carousel = ({ slides, autoplay = true, interval, loop = true }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const len = slides.length;
 
@@ -34,7 +29,6 @@ const Carousel = ({
 
   const goToSlide = (i) => setCurrentIndex(i);
 
-  // It should not be before useEffect because hooks must run consistently
   if (!slides || slides.length === 0) {
     return (
       <div className="w-full h-[400px] flex items-center justify-center text-gray-500">
@@ -70,31 +64,67 @@ const Carousel = ({
         </div>
       ))}
 
-      {/* Prev / Next */}
-      <div className="absolute inset-0 flex items-center justify-between px-4 z-10">
-        <button
-          onClick={goToPrev}
-          className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/30 hover:bg-black/50 p-2 rounded-full text-white z-10"
-        >
-          ❮
-        </button>
-        <button
-          onClick={goToNext}
-          className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/30 hover:bg-black/50 p-2 rounded-full text-white z-10"
-        >
-          ❯
-        </button>
-      </div>
+      {/* Prev Button */}
+      <button
+        onClick={goToPrev}
+        style={{
+          position: "absolute",
+          top: "50%",
+          left: "16px",
+          transform: "translateY(-50%)",
+          backgroundColor: "rgba(0,0,0,0.3)",
+          padding: "8px",
+          borderRadius: "50%",
+          color: "white",
+          zIndex: 10,
+        }}
+      >
+        ❮
+      </button>
+
+      {/* Next Button */}
+      <button
+        onClick={goToNext}
+        style={{
+          position: "absolute",
+          top: "50%",
+          right: "16px",
+          transform: "translateY(-50%)",
+          backgroundColor: "rgba(0,0,0,0.3)",
+          padding: "8px",
+          borderRadius: "50%",
+          color: "white",
+          zIndex: 10,
+        }}
+      >
+        ❯
+      </button>
 
       {/* Dots */}
-      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2 z-10">
+      <div
+        style={{
+          position: "absolute",
+          bottom: "24px",
+          left: "50%",
+          transform: "translateX(-50%)",
+          display: "flex",
+          gap: "8px",
+          zIndex: 10,
+        }}
+      >
         {slides.map((_, idx) => (
           <button
             key={idx}
             onClick={() => goToSlide(idx)}
-            className={`w-3 h-3 rounded-full transition ${
-              idx === currentIndex ? "bg-white" : "bg-white/50"
-            }`}
+            style={{
+              width: "12px",
+              height: "12px",
+              borderRadius: "50%",
+              backgroundColor:
+                idx === currentIndex ? "white" : "rgba(255,255,255,0.5)",
+              border: "none",
+              cursor: "pointer",
+            }}
           />
         ))}
       </div>

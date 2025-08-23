@@ -24,7 +24,7 @@ const Home = () => {
   ];
   return (
     <div className="home">
-      <Carousel slides={slides} autoplay interval={4000} />
+      <Carousel slides={slides} autoplay interval={5000} />
       <h1 className="underline">Welcome to eKart 🛒</h1>
       <Button variant="contained">Hurayy!!!!</Button>
     </div>
