@@ -57,11 +57,13 @@ const Home = () => {
                 <p className="text-gray-700">
                   {getDescriptionText(item.Description)}
                 </p>
-                {item.Image?.url && (
+                {item.Image && item.Image.length > 0 && (
                   <img
-                    src={`http://localhost:1337${item.Image.formats.small?.url || item.Image.url}`}
-                    alt={item.Image.alternativeText || item.Title}
-                    className="mt-2"
+                    src={`http://localhost:1337${
+                      item.Image[0].formats?.small?.url || item.Image[0].url
+                    }`}
+                    alt={item.Image[0].alternativeText || item.Title}
+                    className="mt-2 rounded-lg shadow-md"
                   />
                 )}
               </div>
