@@ -8,4 +8,4 @@ const adminSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-module.export = mongoose.model("Admin", adminSchema);
+export default mongoose.model("Admin", adminSchema);
