@@ -1,5 +1,6 @@
 import "./App.css";
 import Navbar from "./components/NavBar";
+import AdminRoutes from "./routes/adminRoutes";
 import AppRoutes from "./routes/approutes";
 
 function App() {
@@ -7,6 +8,8 @@ function App() {
     <>
       <Navbar />
       <AppRoutes />
+      {/* adminroute */}
+      <AdminRoutes />
     </>
   );
 }
