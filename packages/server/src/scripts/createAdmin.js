@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
 import dotenv from "dotenv";
-import Admin from "../model/Admin"; // note the .js extension for ESM
+import Admin from "../model/Admin.js"; // note the .js extension for ESM
 
 dotenv.config();
 

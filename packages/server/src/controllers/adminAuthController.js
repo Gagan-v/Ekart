@@ -20,7 +20,7 @@ export const adminLogin = async (req, res) => {
     }
     //genrate token
     const token = jwt.sign(
-      { id: admin - _id, role: admin.role },
+      { id: admin._id, role: admin.role },
       process.env.JWT_SECRET,
       { expiresIn: "7d" }
     );
