@@ -7,6 +7,7 @@ import helmet from "helmet";
 import morgan from "morgan";
 import authRoutes from "./routes/authRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
+import productRoutes from "./routes/productsRoutes.js";
 
 dotenv.config();
 const app = express();
@@ -26,6 +27,9 @@ app.get("/", (req, res) => {
 // Auth routes
 app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminRoutes); //link will be /admim/login(/login will come from adminRoutes)
+
+//Product
+app.use("/api/admin/products", productRoutes);
 
 // DB connection
 connectDB().then(() => {

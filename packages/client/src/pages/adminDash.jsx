@@ -12,7 +12,7 @@ const AdminDash = () => {
 
   // Add Product → takes to /admin/add-product
   const handleAddProduct = () => {
-    navigate("/admin/dashboard/add-product");
+    navigate("/admin/add-product");
   };
   return (
     <div className="">

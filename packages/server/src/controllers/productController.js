@@ -1,13 +1,19 @@
-const Product = require("../model/Product.js");
+import Product from "../model/Product.js";
 
 export const createProduct = async (req, res) => {
   try {
-    const { category, subCategory, title, price, specs } = req.body;
     //we need to run conditions before creating the product
+    const {
+      category,
+      subCategory,
+      title,
+      price,
+      specs,
+      imageUrl = "",
+    } = req.body;
     if (!category || !subCategory || !title || price == null) {
       return res.status(400).json({ message: "Missing required fields" });
     }
-    // Accept specs as array or multiline string (convert to array)
     const specsArray = Array.isArray(specs)
       ? specs
       : typeof specs === "string"
@@ -23,7 +29,7 @@ export const createProduct = async (req, res) => {
       title,
       price: Number(price),
       specs: specsArray,
-      imageUrl: imageUrl || "",
+      imageUrl,
       createdBy: req.user?.id,
     });
     return res.status(201).json(product);
@@ -33,22 +39,23 @@ export const createProduct = async (req, res) => {
   }
 };
 
-export const getProducts = async (req, res) => {
+export const getProducts = async (_req, res) => {
   try {
     const products = await Product.find().sort({ createdAt: -1 });
     return res.json(products);
-  } catch (error) {
+  } catch {
     return res.status(500).json({ message: "server error while getting" });
   }
 };
 
-export const getproduct = async (req, res) => {
+export const getProduct = async (req, res) => {
   try {
     const prod = await Product.findById(req.params.id);
     if (!prod) {
-      return res.staus(404).json({ message: "Product not found" });
+      return res.status(404).json({ message: "Product not found" });
     }
-  } catch (error) {
+    return res.json(prod);
+  } catch {
     return res.status(500).json({ message: "server error" });
   }
 };
