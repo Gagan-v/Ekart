@@ -6,25 +6,11 @@ const Carousel = ({ slides, autoplay = true, interval, loop = true }) => {
 
   // Autoplay logic
   useEffect(() => {
-    if (!autoplay || len <= 1) return; // if autoplay is false or only 1 slide
+    if (!autoplay || len <= 1) return;
 
-    //timer
     const id = setInterval(() => {
       setCurrentIndex((prev) => {
         if (prev === len - 1) return loop ? 0 : prev;
-        //`prev === len - 1`** → This checks if we are at the last slide.
-        // If true → we either go back to the first slide (`0`) if looping is enabled.
-        // If false → we just move forward to the next slide.
-        // ✅ Example: If `len = 3` (3 slides → indexes `0,1,2`)
-        // - When `prev = 0` → move to `1`
-        // - When `prev = 1` → move to `2`
-        // - When `prev = 2` (`len - 1 = 2`) →
-        //   - If `loop = true`, go back to `0`
-        //   - If `loop = false`, stay at `2`
-
-        // 👉 So:
-        // - `prev` = current slide index
-        // - `len - 1` = position/index of the **last slide**
         return prev + 1;
       });
     }, interval);
@@ -34,8 +20,8 @@ const Carousel = ({ slides, autoplay = true, interval, loop = true }) => {
 
   // navigation
   const goToNext = () =>
-    setCurrentIndex(
-      (prev) => (prev === len - 1 ? (loop ? 0 : prev) : prev + 1) //check if last slide loop true then slide[0] else + 1
+    setCurrentIndex((prev) =>
+      prev === len - 1 ? (loop ? 0 : prev) : prev + 1
     );
 
   const goToPrev = () =>
@@ -45,100 +31,120 @@ const Carousel = ({ slides, autoplay = true, interval, loop = true }) => {
 
   if (!slides || slides.length === 0) {
     return (
-      <div className="w-full h-[400px] flex items-center justify-center text-gray-500">
-        No slides available
+      <div className="w-full h-[500px] flex items-center justify-center text-gray-500 bg-gray-100 rounded-2xl">
+        <div className="text-center">
+          <div className="text-6xl mb-4">📷</div>
+          <p className="text-xl">No slides available</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="relative w-full h-[400px] overflow-hidden rounded-lg">
+    <div className="relative w-full h-[500px] overflow-hidden rounded-2xl shadow-2xl mx-auto max-w-7xl">
+      {/* Slides */}
       {slides.map((slide, index) => (
         <div
           key={index}
-          className={`absolute inset-0 w-full h-full flex flex-col items-start justify-center px-8 text-white transition-opacity duration-700 ${
+          className={`absolute inset-0 w-full h-full flex flex-col items-start justify-center px-12 text-white transition-all duration-1000 ease-in-out ${
             index === currentIndex
-              ? "opacity-100"
-              : "opacity-0 pointer-events-none hidden"
+              ? "opacity-100 scale-100"
+              : "opacity-0 scale-105 pointer-events-none"
           }`}
           style={{
             backgroundColor: slide.bgColor,
             backgroundImage: slide.image ? `url(${slide.image})` : undefined,
             backgroundSize: "cover",
             backgroundPosition: "center",
+            backgroundBlendMode: "overlay",
           }}
         >
-          <div className="text-xs uppercase opacity-90">{slide.text}</div>
-          {slide.heading && (
-            <h2 className="text-3xl font-bold">{slide.heading}</h2>
-          )}
-          {slide.subheading && (
-            <p className="mt-2 text-lg">{slide.subheading}</p>
-          )}
+          <div className="bg-gradient-to-r from-black/50 to-black/30 backdrop-blur-sm rounded-2xl p-8 max-w-2xl border border-white/20 shadow-2xl">
+            <div className="text-sm uppercase opacity-90 tracking-wider font-semibold mb-3 text-blue-200">
+              {slide.text}
+            </div>
+            {slide.heading && (
+              <h2 className="text-5xl md:text-6xl font-bold mb-6 leading-tight bg-gradient-to-r from-white to-blue-100 bg-clip-text text-transparent">
+                {slide.heading}
+              </h2>
+            )}
+            {slide.subheading && (
+              <p className="text-xl md:text-2xl font-light text-blue-50">
+                {slide.subheading}
+              </p>
+            )}
+          </div>
         </div>
       ))}
 
-      {/* Prev Button */}
+      {/* Previous Button - Center Left */}
       <button
         onClick={goToPrev}
+        className="absolute top-1/2 left-6 transform -translate-y-1/2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white p-4 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110 border-2 border-white/30 backdrop-blur-sm"
         style={{
+          zIndex: 50,
           position: "absolute",
           top: "50%",
-          left: "16px",
+          left: "24px",
           transform: "translateY(-50%)",
-          backgroundColor: "rgba(0,0,0,0.3)",
-          padding: "8px",
-          borderRadius: "50%",
-          color: "white",
-          zIndex: 10,
         }}
       >
-        ❮
+        <svg
+          className="w-6 h-6"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2.5}
+            d="M15 19l-7-7 7-7"
+          />
+        </svg>
       </button>
 
-      {/* Next Button */}
+      {/* Next Button - Center Right */}
       <button
         onClick={goToNext}
+        className="absolute top-1/2 right-6 transform -translate-y-1/2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white p-4 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110 border-2 border-white/30 backdrop-blur-sm"
         style={{
+          zIndex: 50,
           position: "absolute",
           top: "50%",
-          right: "16px",
+          right: "24px",
           transform: "translateY(-50%)",
-          backgroundColor: "rgba(0,0,0,0.3)",
-          padding: "8px",
-          borderRadius: "50%",
-          color: "white",
-          zIndex: 10,
         }}
       >
-        ❯
+        <svg
+          className="w-6 h-6"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2.5}
+            d="M9 5l7 7-7 7"
+          />
+        </svg>
       </button>
 
-      {/* Dots */}
+      {/* Slide Indicators - Bottom Center */}
       <div
-        style={{
-          position: "absolute",
-          bottom: "24px",
-          left: "50%",
-          transform: "translateX(-50%)",
-          display: "flex",
-          gap: "8px",
-          zIndex: 10,
-        }}
+        className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-3"
+        style={{ zIndex: 50 }}
       >
         {slides.map((_, idx) => (
           <button
             key={idx}
             onClick={() => goToSlide(idx)}
-            style={{
-              width: "12px",
-              height: "12px",
-              borderRadius: "50%",
-              backgroundColor:
-                idx === currentIndex ? "white" : "rgba(255,255,255,0.5)",
-              border: "none",
-              cursor: "pointer",
-            }}
+            className={`transition-all duration-300 rounded-full border-2 ${
+              idx === currentIndex
+                ? "w-8 h-3 bg-gradient-to-r from-blue-500 to-blue-600 border-blue-400 shadow-lg"
+                : "w-3 h-3 bg-white/60 hover:bg-white/80 border-white/40 hover:border-white/60 hover:scale-110"
+            }`}
           />
         ))}
       </div>
