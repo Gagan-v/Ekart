@@ -8,11 +8,24 @@ export const createProduct = async (req, res) => {
       subCategory,
       title,
       price,
+      stock,
       specs,
       imageUrl = "",
     } = req.body;
-    if (!category || !subCategory || !title || price == null) {
+    if (!category || !subCategory || !title || price == null || stock == null) {
       return res.status(400).json({ message: "Missing required fields" });
+    }
+    const numericPrice = Number(price);
+    const numericStock = Number(stock);
+    if (Number.isNaN(numericPrice) || numericPrice < 0) {
+      return res
+        .status(400)
+        .json({ message: "Price must be a non-negative number" });
+    }
+    if (!Number.isInteger(numericStock) || numericStock < 0) {
+      return res
+        .status(400)
+        .json({ message: "Stock must be a non-negative integer" });
     }
     const specsArray = Array.isArray(specs)
       ? specs
@@ -27,7 +40,8 @@ export const createProduct = async (req, res) => {
       category,
       subCategory,
       title,
-      price: Number(price),
+      price: numericPrice,
+      stock: numericStock,
       specs: specsArray,
       imageUrl,
       createdBy: req.user?.id,
@@ -56,6 +70,15 @@ export const getProduct = async (req, res) => {
     }
     return res.json(prod);
   } catch {
+    return res.status(500).json({ message: "server error" });
+  }
+};
+
+export const getProductsCount = async (_req, res) => {
+  try {
+    const count = await Product.countDocuments();
+    return res.json({ count });
+  } catch (err) {
     return res.status(500).json({ message: "server error" });
   }
 };

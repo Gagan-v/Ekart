@@ -17,11 +17,13 @@ const AddProduct = () => {
   const [subCategory, setSubCategory] = useState("");
   const [title, setTitle] = useState("");
   const [price, setPrice] = useState("");
+  const [stock, setStock] = useState("");
   const [specs, setSpecs] = useState("•");
   const [image, setImage] = useState(null); // for file
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: "", text: "" });
   const [showSnackbar, setShowSnackbar] = useState(false);
+  const [totalCount, setTotalCount] = useState(0);
 
   // Check if admin is logged in
   useEffect(() => {
@@ -29,6 +31,19 @@ const AddProduct = () => {
     if (!adminToken) {
       navigate("/admin/login");
     }
+    const fetchCount = async () => {
+      try {
+        const res = await fetch("http://localhost:5000/api/products/count", {
+          headers: { Authorization: `Bearer ${adminToken}` },
+        });
+        const data = await res.json();
+        if (res.ok) setTotalCount(data.count || 0);
+      } catch (error) {
+        console.error("Error refreshing count:", error);
+        // ignore count errors in UI
+      }
+    };
+    fetchCount();
   }, [navigate]);
 
   // Handle logout
@@ -53,6 +68,7 @@ const AddProduct = () => {
     setSubCategory("");
     setTitle("");
     setPrice("");
+    setStock("");
     setSpecs("•");
     setImage(null);
   };
@@ -79,6 +95,10 @@ const AddProduct = () => {
     }
     if (!price || price <= 0) {
       showMessage("error", "Please enter a valid price");
+      return false;
+    }
+    if (!stock || Number(stock) < 0 || !Number.isInteger(Number(stock))) {
+      showMessage("error", "Please enter a valid stock (integer >= 0)");
       return false;
     }
     if (!specs.trim() || specs.trim() === "•") {
@@ -111,6 +131,7 @@ const AddProduct = () => {
         subCategory,
         title: title.trim(),
         price: Number(price),
+        stock: Number(stock),
         specs: specs.trim(),
         imageUrl,
       };
@@ -141,6 +162,16 @@ const AddProduct = () => {
       if (response.ok) {
         showMessage("success", "Product added successfully!");
         resetForm();
+        // refresh count
+        try {
+          const res2 = await fetch("http://localhost:5000/api/products/count", {
+            headers: { Authorization: `Bearer ${adminToken}` },
+          });
+          const d2 = await res2.json();
+          if (res2.ok) setTotalCount(d2.count || 0);
+        } catch (error) {
+          console.error("Error refreshing count:", error);
+        }
       } else {
         showMessage("error", data.message || "Failed to add product");
       }
@@ -168,7 +199,12 @@ const AddProduct = () => {
           marginBottom: "30px",
         }}
       >
-        <h2>Add New Product</h2>
+        <div>
+          <h2 style={{ margin: 0 }}>Add New Product</h2>
+          <div style={{ marginTop: "4px", color: "#555", fontSize: 14 }}>
+            Total products: {totalCount}
+          </div>
+        </div>
         <div>
           <Button
             variant="outlined"
@@ -227,6 +263,16 @@ const AddProduct = () => {
           type="number"
           value={price}
           onChange={(e) => setPrice(e.target.value)}
+        />
+
+        {/* Stock */}
+        <TextField
+          fullWidth
+          margin="normal"
+          label="Stock"
+          type="number"
+          value={stock}
+          onChange={(e) => setStock(e.target.value)}
         />
 
         {/* Specs */}
