@@ -14,6 +14,9 @@ const AdminDash = () => {
   const handleAddProduct = () => {
     navigate("/admin/add-product");
   };
+  const handleProductList = () => {
+    navigate("/admin/products-maintenance");
+  };
   return (
     <div className="">
       <Container sx={{ mt: 4 }}>
@@ -30,6 +33,10 @@ const AdminDash = () => {
             onClick={handleAddProduct}
           >
             Add Product
+          </Button>
+
+          <Button variant="outlined" onClick={handleProductList}>
+            Product List
           </Button>
 
           <Button variant="contained" color="error" onClick={handleLogout}>

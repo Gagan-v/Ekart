@@ -82,3 +82,61 @@ export const getProductsCount = async (_req, res) => {
     return res.status(500).json({ message: "server error" });
   }
 };
+
+export const deleteProduct = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const deleted = await Product.findByIdAndDelete(id);
+    if (!deleted) {
+      return res.status(404).json({ message: "Product not found" });
+    }
+    return res.json({ message: "Product deleted", id });
+  } catch (err) {
+    return res.status(500).json({ message: "server error" });
+  }
+};
+
+export const reduceProductStock = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { quantity } = req.body || {};
+    const reduceBy = Number(quantity);
+    if (!Number.isInteger(reduceBy) || reduceBy <= 0) {
+      return res
+        .status(400)
+        .json({ message: "Quantity must be a positive integer" });
+    }
+
+    const product = await Product.findById(id);
+    if (!product) {
+      return res.status(404).json({ message: "Product not found" });
+    }
+    if (reduceBy > product.stock) {
+      return res
+        .status(400)
+        .json({ message: "Quantity exceeds current stock" });
+    }
+
+    const newStock = product.stock - reduceBy;
+    if (newStock === 0) {
+      await product.deleteOne();
+      return res.json({
+        message: "Product deleted as stock reached 0",
+        id,
+        stock: 0,
+        deleted: true,
+      });
+    }
+
+    product.stock = newStock;
+    await product.save();
+    return res.json({
+      message: "Stock reduced",
+      id,
+      stock: newStock,
+      deleted: false,
+    });
+  } catch (err) {
+    return res.status(500).json({ message: "server error" });
+  }
+};

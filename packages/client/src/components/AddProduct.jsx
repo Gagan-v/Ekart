@@ -40,7 +40,6 @@ const AddProduct = () => {
         if (res.ok) setTotalCount(data.count || 0);
       } catch (error) {
         console.error("Error refreshing count:", error);
-        // ignore count errors in UI
       }
     };
     fetchCount();
