@@ -14,7 +14,7 @@ import {
 const AddProduct = () => {
   const navigate = useNavigate();
   const [category, setCategory] = useState("");
-  const [subCategory, setSubCategory] = useState("");
+  // Removed subCategory state - now using only main categories
   const [title, setTitle] = useState("");
   const [price, setPrice] = useState("");
   const [stock, setStock] = useState("");
@@ -64,7 +64,6 @@ const AddProduct = () => {
   // Function to reset form
   const resetForm = () => {
     setCategory("");
-    setSubCategory("");
     setTitle("");
     setPrice("");
     setStock("");
@@ -82,10 +81,6 @@ const AddProduct = () => {
   const validateForm = () => {
     if (!category) {
       showMessage("error", "Please select a category");
-      return false;
-    }
-    if (!subCategory) {
-      showMessage("error", "Please select a subcategory");
       return false;
     }
     if (!title.trim()) {
@@ -124,10 +119,9 @@ const AddProduct = () => {
         imageUrl = await convertImageToBase64(image);
       }
 
-      // Prepare the request body
+      // Prepare the request body - now using only main category
       const productData = {
         category,
-        subCategory,
         title: title.trim(),
         price: Number(price),
         stock: Number(stock),
@@ -219,31 +213,20 @@ const AddProduct = () => {
       </div>
 
       <form onSubmit={handleSubmit}>
-        {/* Category */}
+        {/* Simplified Category Dropdown - Only main categories */}
+        {/* This replaces the previous two-dropdown system (category + subcategory) */}
+        {/* Now admins select directly from: Mobile, Laptop, or Accessories */}
         <FormControl fullWidth margin="normal">
           <InputLabel>Category</InputLabel>
           <Select
             value={category}
             onChange={(e) => setCategory(e.target.value)}
           >
-            <MenuItem value="electronics">Electronics</MenuItem>
-            <MenuItem value="home-appliances">Home Appliances</MenuItem>
+            <MenuItem value="mobile">Mobile</MenuItem>
+            <MenuItem value="laptop">Laptop</MenuItem>
+            <MenuItem value="accessories">Accessories</MenuItem>
           </Select>
         </FormControl>
-
-        {/* Subcategory (depends on category) */}
-        {category === "electronics" && (
-          <FormControl fullWidth margin="normal">
-            <InputLabel>Subcategory</InputLabel>
-            <Select
-              value={subCategory}
-              onChange={(e) => setSubCategory(e.target.value)}
-            >
-              <MenuItem value="mobile">Mobile</MenuItem>
-              <MenuItem value="laptop">Laptop</MenuItem>
-            </Select>
-          </FormControl>
-        )}
 
         {/* Title */}
         <TextField

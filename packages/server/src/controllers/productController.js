@@ -3,16 +3,9 @@ import Product from "../model/Product.js";
 export const createProduct = async (req, res) => {
   try {
     //we need to run conditions before creating the product
-    const {
-      category,
-      subCategory,
-      title,
-      price,
-      stock,
-      specs,
-      imageUrl = "",
-    } = req.body;
-    if (!category || !subCategory || !title || price == null || stock == null) {
+    // Removed subCategory from destructuring - now using only main categories
+    const { category, title, price, stock, specs, imageUrl = "" } = req.body;
+    if (!category || !title || price == null || stock == null) {
       return res.status(400).json({ message: "Missing required fields" });
     }
     const numericPrice = Number(price);
@@ -36,9 +29,9 @@ export const createProduct = async (req, res) => {
             .filter(Boolean)
         : [];
 
+    // Create product with simplified category structure (no subCategory)
     const product = await Product.create({
       category,
-      subCategory,
       title,
       price: numericPrice,
       stock: numericStock,

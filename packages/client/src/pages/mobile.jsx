@@ -10,10 +10,13 @@ const Mobile = () => {
     const fetchMobileProducts = async () => {
       try {
         setLoading(true);
-        const response = await axios.get("http://localhost:5000/api/admin/products");
-        // Filter products where subCategory is "mobile"
+        const response = await axios.get(
+          "http://localhost:5000/api/admin/products"
+        );
+        // Filter products where category is "mobile"
+        // This replaces the previous filtering by subCategory === "mobile"
         const mobileProducts = response.data.filter(
-          (product) => product.subCategory === "mobile"
+          (product) => product.category === "mobile"
         );
         setProducts(mobileProducts);
       } catch (err) {
@@ -33,7 +36,9 @@ const Mobile = () => {
         <div className="max-w-6xl mx-auto px-4 py-8">
           <div className="text-center py-12">
             <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-            <p className="mt-4 text-gray-600 text-lg">Loading mobile products...</p>
+            <p className="mt-4 text-gray-600 text-lg">
+              Loading mobile products...
+            </p>
           </div>
         </div>
       </div>
@@ -57,7 +62,9 @@ const Mobile = () => {
       <div className="max-w-6xl mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-4xl font-bold text-gray-800 mb-2">Mobile Phones</h1>
+          <h1 className="text-4xl font-bold text-gray-800 mb-2">
+            Mobile Phones
+          </h1>
           <p className="text-gray-600">
             Discover the latest mobile phones with cutting-edge technology
           </p>
@@ -93,7 +100,9 @@ const Mobile = () => {
                     <div className="w-full h-48 bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
                       <div className="text-center">
                         <div className="text-4xl text-gray-400 mb-2">📱</div>
-                        <p className="text-gray-500 text-sm">Image Coming Soon</p>
+                        <p className="text-gray-500 text-sm">
+                          Image Coming Soon
+                        </p>
                       </div>
                     </div>
                   )}
@@ -147,16 +156,17 @@ const Mobile = () => {
                     </div>
                   </div>
 
-                  {/* Buy Now Button */}
+                  {/* Add to Cart Button - Updated from "Buy Now" to "Add to Cart" */}
+                  {/* Includes hover effects: scale transform and enhanced shadow */}
                   <button
                     className={`w-full py-3 px-4 rounded-lg font-semibold transition-all duration-200 ${
                       product.stock > 0
-                        ? "bg-blue-600 hover:bg-blue-700 text-white shadow-md hover:shadow-lg"
+                        ? "bg-blue-600 hover:bg-blue-700 text-white shadow-md hover:shadow-lg transform hover:scale-105"
                         : "bg-gray-300 text-gray-500 cursor-not-allowed"
                     }`}
                     disabled={product.stock === 0}
                   >
-                    {product.stock > 0 ? "Buy Now" : "Out of Stock"}
+                    {product.stock > 0 ? "Add to Cart" : "Out of Stock"}
                   </button>
                 </div>
               </div>

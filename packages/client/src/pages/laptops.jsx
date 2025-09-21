@@ -13,9 +13,10 @@ const Laptops = () => {
         const response = await axios.get(
           "http://localhost:5000/api/admin/products"
         );
-        // Filter products where subCategory is "laptop"
+        // Filter products where category is "laptop"
+        // This replaces the previous filtering by subCategory === "laptop"
         const laptopProducts = response.data.filter(
-          (product) => product.subCategory === "laptop"
+          (product) => product.category === "laptop"
         );
         setProducts(laptopProducts);
       } catch (err) {
@@ -153,16 +154,17 @@ const Laptops = () => {
                     </div>
                   </div>
 
-                  {/* Buy Now Button */}
+                  {/* Add to Cart Button - Updated from "Buy Now" to "Add to Cart" */}
+                  {/* Includes hover effects: scale transform and enhanced shadow */}
                   <button
                     className={`w-full py-3 px-4 rounded-lg font-semibold transition-all duration-200 ${
                       product.stock > 0
-                        ? "bg-blue-600 hover:bg-blue-700 text-white shadow-md hover:shadow-lg"
+                        ? "bg-blue-600 hover:bg-blue-700 text-white shadow-md hover:shadow-lg transform hover:scale-105"
                         : "bg-gray-300 text-gray-500 cursor-not-allowed"
                     }`}
                     disabled={product.stock === 0}
                   >
-                    {product.stock > 0 ? "Buy Now" : "Out of Stock"}
+                    {product.stock > 0 ? "Add to Cart" : "Out of Stock"}
                   </button>
                 </div>
               </div>

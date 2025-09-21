@@ -4,10 +4,11 @@ const productSchema = new mongoose.Schema(
   {
     category: {
       type: String,
-      enum: ["electronics", "home-appliances"], //enum is used because category is fixed
+      enum: ["mobile", "laptop", "accessories"], // Simplified to only main categories
       required: true,
     },
-    subCategory: { type: String, required: true }, // e.g. "mobile", "laptop"
+    // Removed subCategory field - now using only main categories
+    // This field previously stored values like "mobile", "laptop" under "electronics" category
     title: { type: String, required: true },
     price: { type: Number, required: true },
     stock: { type: Number, required: true, min: 0, default: 0 },
