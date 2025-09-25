@@ -4,6 +4,8 @@ import Mobile from "../pages/mobile";
 import Laptops from "../pages/laptops";
 import Accessories from "../pages/accessories";
 import AddCart from "../pages/AddCart";
+import UserLogin from "../pages/UserLogin";
+import UserRegister from "../pages/UserRegister";
 // Removed unused imports: Kitchen, Dining, Room (old Home Appliances pages)
 
 const AppRoutes = () => {
@@ -18,6 +20,9 @@ const AppRoutes = () => {
         <Route path="/accessories" element={<Accessories />} />
         {/* Cart route */}
         <Route path="/cart" element={<AddCart />} />
+        {/* Auth routes */}
+        <Route path="/login" element={<UserLogin />} />
+        <Route path="/userregister" element={<UserRegister />} />
         {/* Removed old nested routes for Electronics and Home Appliances */}
       </Routes>
     </div>

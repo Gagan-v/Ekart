@@ -44,8 +44,8 @@ const SearchInput = styled(InputBase)(({ theme }) => ({
 // Removed Arrow component - no longer needed for dropdown menus
 
 export default function Navbar() {
-  const isLoggedIn = false; // TODO: auth logic
-  const userName = "Gagan";
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [userName, setUserName] = useState("");
   const [cartItemCount, setCartItemCount] = useState(0);
 
   // Load cart items count from localStorage
@@ -78,6 +78,44 @@ export default function Navbar() {
       window.removeEventListener("cartUpdated", updateCartCount);
     };
   }, []);
+
+  useEffect(() => {
+    const token = localStorage.getItem("authToken");
+    const user = localStorage.getItem("authUser");
+    if (token && user) {
+      try {
+        const parsed = JSON.parse(user);
+        setUserName(parsed.name || parsed.email || "User");
+        setIsLoggedIn(true);
+      } catch {
+        setIsLoggedIn(false);
+      }
+    } else {
+      setIsLoggedIn(false);
+    }
+
+    const onStorage = () => {
+      const t = localStorage.getItem("authToken");
+      const u = localStorage.getItem("authUser");
+      setIsLoggedIn(Boolean(t && u));
+      try {
+        setUserName(
+          u ? JSON.parse(u).name || JSON.parse(u).email || "User" : ""
+        );
+      } catch {
+        setUserName("");
+      }
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem("authToken");
+    localStorage.removeItem("authUser");
+    setIsLoggedIn(false);
+    setUserName("");
+  };
 
   // Removed dropdown menu state - now using direct navigation links
 
@@ -153,7 +191,12 @@ export default function Navbar() {
 
           {/* Profile/Login */}
           {isLoggedIn ? (
-            <Avatar>{userName[0]}</Avatar>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              <Avatar>{userName?.[0] || "U"}</Avatar>
+              <Button variant="outlined" color="inherit" onClick={handleLogout}>
+                Logout
+              </Button>
+            </Box>
           ) : (
             <Button
               component={Link}
