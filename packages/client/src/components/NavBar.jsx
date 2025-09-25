@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { useState, useEffect } from "react";
 import {
   AppBar,
   Toolbar,
@@ -7,6 +8,8 @@ import {
   Button,
   Avatar,
   Box,
+  Badge,
+  IconButton,
 } from "@mui/material";
 import { styled, alpha } from "@mui/material/styles";
 
@@ -43,6 +46,38 @@ const SearchInput = styled(InputBase)(({ theme }) => ({
 export default function Navbar() {
   const isLoggedIn = false; // TODO: auth logic
   const userName = "Gagan";
+  const [cartItemCount, setCartItemCount] = useState(0);
+
+  // Load cart items count from localStorage
+  useEffect(() => {
+    const updateCartCount = () => {
+      const savedCart = localStorage.getItem("cart");
+      if (savedCart) {
+        const cartItems = JSON.parse(savedCart);
+        const totalItems = cartItems.reduce(
+          (sum, item) => sum + item.quantity,
+          0
+        );
+        setCartItemCount(totalItems);
+      } else {
+        setCartItemCount(0);
+      }
+    };
+
+    // Update cart count on component mount
+    updateCartCount();
+
+    // Listen for storage changes (when cart is updated from other components)
+    window.addEventListener("storage", updateCartCount);
+
+    // Custom event for same-tab cart updates
+    window.addEventListener("cartUpdated", updateCartCount);
+
+    return () => {
+      window.removeEventListener("storage", updateCartCount);
+      window.removeEventListener("cartUpdated", updateCartCount);
+    };
+  }, []);
 
   // Removed dropdown menu state - now using direct navigation links
 
@@ -93,8 +128,30 @@ export default function Navbar() {
           </Button>
         </Box>
 
-        {/* Right: Profile/Login */}
+        {/* Right: Cart and Profile/Login */}
         <Box sx={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+          {/* Cart Icon */}
+          <IconButton
+            component={Link}
+            to="/cart"
+            sx={{ color: "white" }}
+            aria-label="shopping cart"
+          >
+            <Badge badgeContent={cartItemCount} color="error">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+                width="24"
+                height="24"
+                aria-hidden="true"
+              >
+                <path d="M7 18c-1.104 0-1.99.896-1.99 2S5.896 22 7 22s2-.896 2-2-.896-2-2-2zm10 0c-1.104 0-1.99.896-1.99 2S15.896 22 17 22s2-.896 2-2-.896-2-2-2zM7.334 14h9.9c.86 0 1.617-.55 1.887-1.366l2.46-7.378A1 1 0 0019.64 4H6.21l-.31-1.243A1.998 1.998 0 004 1H2a1 1 0 000 2h1.61l2.54 10.162A2 2 0 008.09 15h9.144a1 1 0 100-2H7.334z" />
+              </svg>
+            </Badge>
+          </IconButton>
+
+          {/* Profile/Login */}
           {isLoggedIn ? (
             <Avatar>{userName[0]}</Avatar>
           ) : (

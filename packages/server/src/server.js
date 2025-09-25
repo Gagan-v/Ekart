@@ -8,6 +8,7 @@ import morgan from "morgan";
 import authRoutes from "./routes/authRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
 import productRoutes from "./routes/productsRoutes.js";
+import reviewRoutes from "./routes/reviewRoutes.js";
 
 dotenv.config();
 const app = express();
@@ -30,6 +31,9 @@ app.use("/api/admin", adminRoutes); //link will be /admim/login(/login will come
 
 //Product
 app.use("/api/admin/products", productRoutes);
+
+//Reviews
+app.use("/api/reviews", reviewRoutes);
 
 // DB connection
 connectDB().then(() => {
