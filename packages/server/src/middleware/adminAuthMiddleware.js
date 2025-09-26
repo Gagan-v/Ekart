@@ -1,3 +1,4 @@
+// Verifies admin JWT only. Do not use this for user endpoints.
 import jwt from "jsonwebtoken";
 import Admin from "../model/Admin.js";
 

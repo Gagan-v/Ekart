@@ -1,3 +1,5 @@
+// Admin authentication controller
+// Uses JWT exclusively for admins. Users do NOT use JWT anywhere in this codebase.
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";

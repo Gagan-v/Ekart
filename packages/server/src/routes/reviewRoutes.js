@@ -4,17 +4,17 @@ import {
   getProductReviews,
   deleteReview,
 } from "../controllers/reviewController.js";
-import { authenticateToken } from "../middleware/authMiddleware.js";
+import { attachUserById } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
-// Add a new review (requires authentication)
-router.post("/", authenticateToken, addReview);
+// Add a new review (requires user identification without JWT)
+router.post("/", attachUserById, addReview);
 
 // Get all reviews for a specific product (public route)
 router.get("/product/:productId", getProductReviews);
 
-// Delete a review (requires authentication)
-router.delete("/:reviewId", authenticateToken, deleteReview);
+// Delete a review (requires user identification without JWT)
+router.delete("/:reviewId", attachUserById, deleteReview);
 
 export default router;

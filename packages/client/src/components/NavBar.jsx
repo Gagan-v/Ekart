@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import {
   AppBar,
@@ -10,6 +10,10 @@ import {
   Box,
   Badge,
   IconButton,
+  Menu,
+  MenuItem,
+  ListItemIcon,
+  ListItemText,
 } from "@mui/material";
 import { styled, alpha } from "@mui/material/styles";
 
@@ -41,12 +45,37 @@ const SearchInput = styled(InputBase)(({ theme }) => ({
   },
 }));
 
-// Removed Arrow component - no longer needed for dropdown menus
+// SVG Icon Components
+const AccountCircleIcon = ({ size = 24 }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 24 24"
+    fill="currentColor"
+    width={size}
+    height={size}
+  >
+    <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+  </svg>
+);
+
+const LogoutIcon = ({ size = 24 }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 24 24"
+    fill="currentColor"
+    width={size}
+    height={size}
+  >
+    <path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z" />
+  </svg>
+);
 
 export default function Navbar() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userName, setUserName] = useState("");
   const [cartItemCount, setCartItemCount] = useState(0);
+  const [anchorEl, setAnchorEl] = useState(null);
+  const navigate = useNavigate();
 
   // Load cart items count from localStorage
   useEffect(() => {
@@ -80,44 +109,84 @@ export default function Navbar() {
   }, []);
 
   useEffect(() => {
-    const token = localStorage.getItem("authToken");
-    const user = localStorage.getItem("authUser");
-    if (token && user) {
-      try {
-        const parsed = JSON.parse(user);
-        setUserName(parsed.name || parsed.email || "User");
-        setIsLoggedIn(true);
-      } catch {
+    const updateAuthState = () => {
+      const user = localStorage.getItem("authUser");
+      if (user) {
+        try {
+          const parsed = JSON.parse(user);
+          setUserName(parsed.name || parsed.email || "User");
+          setIsLoggedIn(true);
+        } catch {
+          setIsLoggedIn(false);
+          setUserName("");
+        }
+      } else {
         setIsLoggedIn(false);
-      }
-    } else {
-      setIsLoggedIn(false);
-    }
-
-    const onStorage = () => {
-      const t = localStorage.getItem("authToken");
-      const u = localStorage.getItem("authUser");
-      setIsLoggedIn(Boolean(t && u));
-      try {
-        setUserName(
-          u ? JSON.parse(u).name || JSON.parse(u).email || "User" : ""
-        );
-      } catch {
         setUserName("");
       }
     };
+
+    // Initial load
+    updateAuthState();
+
+    // Listen for storage changes from other tabs
+    const onStorage = () => {
+      updateAuthState();
+    };
+
+    // Listen for custom auth state changes from same tab
+    const onAuthStateChanged = (event) => {
+      if (event.detail.isLoggedIn) {
+        setUserName(
+          event.detail.user.name || event.detail.user.email || "User"
+        );
+        setIsLoggedIn(true);
+      } else {
+        setIsLoggedIn(false);
+        setUserName("");
+      }
+    };
+
     window.addEventListener("storage", onStorage);
-    return () => window.removeEventListener("storage", onStorage);
+    window.addEventListener("authStateChanged", onAuthStateChanged);
+
+    return () => {
+      window.removeEventListener("storage", onStorage);
+      window.removeEventListener("authStateChanged", onAuthStateChanged);
+    };
   }, []);
 
   const handleLogout = () => {
-    localStorage.removeItem("authToken");
     localStorage.removeItem("authUser");
+    // Keep cart in DB, but clear local copy when logging out
+    localStorage.removeItem("cart");
+
+    // Dispatch custom event to notify navbar of logout state change
+    window.dispatchEvent(
+      new CustomEvent("authStateChanged", {
+        detail: { isLoggedIn: false, user: null },
+      })
+    );
+
     setIsLoggedIn(false);
     setUserName("");
+    setAnchorEl(null); // Close dropdown
+    navigate("/");
   };
 
-  // Removed dropdown menu state - now using direct navigation links
+  // Dropdown menu handlers
+  const handleProfileClick = (event) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+  };
+
+  const handleAccountClick = () => {
+    navigate("/account");
+    handleMenuClose();
+  };
 
   return (
     <AppBar position="fixed" sx={{ backgroundColor: "#1976d2", zIndex: 1300 }}>
@@ -192,10 +261,42 @@ export default function Navbar() {
           {/* Profile/Login */}
           {isLoggedIn ? (
             <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-              <Avatar>{userName?.[0] || "U"}</Avatar>
-              <Button variant="outlined" color="inherit" onClick={handleLogout}>
-                Logout
-              </Button>
+              <IconButton
+                onClick={handleProfileClick}
+                sx={{ color: "white" }}
+                aria-label="account menu"
+              >
+                <AccountCircleIcon />
+              </IconButton>
+              <Menu
+                anchorEl={anchorEl}
+                open={Boolean(anchorEl)}
+                onClose={handleMenuClose}
+                anchorOrigin={{
+                  vertical: "bottom",
+                  horizontal: "right",
+                }}
+                transformOrigin={{
+                  vertical: "top",
+                  horizontal: "right",
+                }}
+              >
+                <MenuItem disabled>
+                  <ListItemText primary={userName} secondary="Logged in" />
+                </MenuItem>
+                <MenuItem onClick={handleAccountClick}>
+                  <ListItemIcon>
+                    <AccountCircleIcon size={20} />
+                  </ListItemIcon>
+                  <ListItemText>Account Settings</ListItemText>
+                </MenuItem>
+                <MenuItem onClick={handleLogout}>
+                  <ListItemIcon>
+                    <LogoutIcon size={20} />
+                  </ListItemIcon>
+                  <ListItemText>Logout</ListItemText>
+                </MenuItem>
+              </Menu>
             </Box>
           ) : (
             <Button

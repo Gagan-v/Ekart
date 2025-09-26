@@ -1,29 +1,20 @@
-import jwt from "jsonwebtoken";
 import User from "../model/User.js";
 
-// Verifies Bearer token and attaches user to req.user
-export const authenticateToken = async (req, res, next) => {
+// Session-less identification: attach user by ID passed via header x-user-id (sent by frontend)
+// Learning note: This replaces JWT for user endpoints. Admin remains protected by adminAuth middleware.
+export const attachUserById = async (req, res, next) => {
   try {
-    const authHeader = req.headers.authorization || "";
-    if (!authHeader.startsWith("Bearer ")) {
-      return res
-        .status(401)
-        .json({ message: "No token, authorization denied" });
+    const userId = req.header("x-user-id") || req.body?.userId;
+    if (!userId) {
+      return res.status(401).json({ message: "No userId provided" });
     }
-
-    const token = authHeader.split(" ")[1];
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-    const user = await User.findById(decoded.id).select("-password");
+    const user = await User.findById(userId);
     if (!user) {
-      return res
-        .status(401)
-        .json({ message: "User not found or unauthorized" });
+      return res.status(401).json({ message: "User not found" });
     }
-
-    req.user = user;
+    req.user = user; // keep password on instance for internal ops; never send it back
     next();
   } catch (error) {
-    return res.status(401).json({ message: "Invalid or expired token" });
+    return res.status(401).json({ message: "Invalid user" });
   }
 };

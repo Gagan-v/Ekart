@@ -9,6 +9,7 @@ import authRoutes from "./routes/authRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
 import productRoutes from "./routes/productsRoutes.js";
 import reviewRoutes from "./routes/reviewRoutes.js";
+import cartRoutes from "./routes/cartRoutes.js";
 
 dotenv.config();
 const app = express();
@@ -34,6 +35,9 @@ app.use("/api/admin/products", productRoutes);
 
 //Reviews
 app.use("/api/reviews", reviewRoutes);
+
+// User Cart (no JWT; identifies via x-user-id or body)
+app.use("/api/cart", cartRoutes);
 
 // DB connection
 connectDB().then(() => {

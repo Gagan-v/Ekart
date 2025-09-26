@@ -33,40 +33,57 @@ const Accessories = () => {
   }, []);
 
   // Add product to cart function
-  const addToCart = (product) => {
-    const cartItem = {
-      id: product._id,
-      title: product.title,
-      price: product.price,
-      category: product.category,
-      image1: product.image1 || product.imageUrl,
-      quantity: 1,
-    };
-
-    // Get existing cart from localStorage
-    const existingCart = JSON.parse(localStorage.getItem("cart") || "[]");
-
-    // Check if item already exists in cart
-    const existingItemIndex = existingCart.findIndex(
-      (item) => item.id === product._id
-    );
-
-    if (existingItemIndex >= 0) {
-      // Update quantity if item exists
-      existingCart[existingItemIndex].quantity += 1;
-    } else {
-      // Add new item to cart
-      existingCart.push(cartItem);
+  const addToCart = async (product) => {
+    if (!product || !product._id) {
+      alert("Invalid product data");
+      return;
     }
 
-    // Save updated cart to localStorage
-    localStorage.setItem("cart", JSON.stringify(existingCart));
-
-    // Dispatch custom event to update navbar cart count
-    window.dispatchEvent(new Event("cartUpdated"));
-
-    // Show success message
-    alert(`${product.title} added to cart!`);
+    const user = JSON.parse(localStorage.getItem("authUser") || "null");
+    const productId = product._id;
+    if (user?.id) {
+      try {
+        const res = await fetch("http://localhost:5000/api/cart/add", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "x-user-id": user.id },
+          body: JSON.stringify({ productId, quantity: 1 }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data?.message || "Failed to add to cart");
+        // Sync local cart with backend response (now includes full product details)
+        const cartData = Array.isArray(data.cart) ? data.cart : [];
+        localStorage.setItem("cart", JSON.stringify(cartData));
+        window.dispatchEvent(new Event("cartUpdated"));
+        alert(`${product.title || "Product"} added to cart!`);
+      } catch (err) {
+        console.error("Failed to add to cart:", err);
+        alert(err.message || "Failed to add to cart");
+      }
+    } else {
+      try {
+        const existingCart = JSON.parse(localStorage.getItem("cart") || "[]");
+        const validCart = Array.isArray(existingCart) ? existingCart : [];
+        const idx = validCart.findIndex((item) => item?.id === productId);
+        if (idx >= 0) {
+          validCart[idx].quantity = (validCart[idx].quantity || 1) + 1;
+        } else {
+          validCart.push({
+            id: productId,
+            quantity: 1,
+            title: product.title || "Unknown Product",
+            price: product.price || 0,
+            image1: product.image1 || "",
+            category: product.category || "accessories",
+          });
+        }
+        localStorage.setItem("cart", JSON.stringify(validCart));
+        window.dispatchEvent(new Event("cartUpdated"));
+        alert(`${product.title || "Product"} added to cart!`);
+      } catch (err) {
+        console.error("Failed to add to cart locally:", err);
+        alert("Failed to add to cart");
+      }
+    }
   };
 
   // Handle product click to show detailed view

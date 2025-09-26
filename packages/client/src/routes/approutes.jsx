@@ -6,6 +6,8 @@ import Accessories from "../pages/accessories";
 import AddCart from "../pages/AddCart";
 import UserLogin from "../pages/UserLogin";
 import UserRegister from "../pages/UserRegister";
+import Account from "../pages/Account";
+import ErrorBoundary from "../components/ErrorBoundary";
 // Removed unused imports: Kitchen, Dining, Room (old Home Appliances pages)
 
 const AppRoutes = () => {
@@ -18,11 +20,19 @@ const AppRoutes = () => {
         <Route path="/mobile" element={<Mobile />} />
         <Route path="/laptop" element={<Laptops />} />
         <Route path="/accessories" element={<Accessories />} />
-        {/* Cart route */}
-        <Route path="/cart" element={<AddCart />} />
+        {/* Cart route with error boundary */}
+        <Route
+          path="/cart"
+          element={
+            <ErrorBoundary>
+              <AddCart />
+            </ErrorBoundary>
+          }
+        />
         {/* Auth routes */}
         <Route path="/login" element={<UserLogin />} />
         <Route path="/userregister" element={<UserRegister />} />
+        <Route path="/account" element={<Account />} />
         {/* Removed old nested routes for Electronics and Home Appliances */}
       </Routes>
     </div>

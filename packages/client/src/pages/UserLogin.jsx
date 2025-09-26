@@ -24,6 +24,7 @@ export default function UserLogin() {
     setSuccess("");
     setLoading(true);
     try {
+      // Send username+password to backend; backend returns user profile (no JWT)
       const res = await fetch("http://localhost:5000/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -33,12 +34,25 @@ export default function UserLogin() {
       if (!res.ok) {
         throw new Error(data?.message || "Login failed");
       }
-      // Save token and basic user info for later use
-      localStorage.setItem("authToken", data.token);
+      // Save basic user info and cart in localStorage (no JWT)
+      // Learning note: We removed JWT for users, so localStorage is our lightweight session store.
       localStorage.setItem(
         "authUser",
         JSON.stringify({ id: data._id, name: data.name, email: data.email })
       );
+      localStorage.setItem("cart", JSON.stringify(data.cart || []));
+      // Explain: We removed JWT for users; we keep session-like state in localStorage.
+
+      // Dispatch custom event to notify navbar of login state change
+      window.dispatchEvent(
+        new CustomEvent("authStateChanged", {
+          detail: {
+            isLoggedIn: true,
+            user: { id: data._id, name: data.name, email: data.email },
+          },
+        })
+      );
+
       setSuccess("Logged in successfully");
       setTimeout(() => navigate("/"), 800);
     } catch (err) {
@@ -92,7 +106,7 @@ export default function UserLogin() {
           </Stack>
         </form>
         <Typography variant="body2" className="mt-4 text-center">
-          New account? <Link to="/userregister">Signup here</Link>
+          New account? <Link to="/userregister">Sign up here</Link>
         </Typography>
       </Paper>
     </div>
