@@ -53,6 +53,9 @@ export default function UserLogin() {
         })
       );
 
+      // Dispatch custom event to notify navbar of cart update
+      window.dispatchEvent(new CustomEvent("cartUpdated"));
+
       setSuccess("Logged in successfully");
       setTimeout(() => navigate("/"), 800);
     } catch (err) {

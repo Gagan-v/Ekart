@@ -82,6 +82,85 @@ const AddCart = () => {
     loadCart();
   }, []);
 
+  // Listen for auth state changes and reload cart when user logs in/out
+  useEffect(() => {
+    const handleAuthStateChange = () => {
+      // Reload cart when auth state changes (user login/logout)
+      const loadCart = async () => {
+        try {
+          const user = JSON.parse(localStorage.getItem("authUser") || "null");
+
+          if (user?.id) {
+            // Logged in: fetch from backend
+            try {
+              const res = await fetch("http://localhost:5000/api/cart", {
+                headers: { "x-user-id": user.id },
+              });
+              const data = await res.json();
+              if (res.ok) {
+                const cartData = Array.isArray(data.cart) ? data.cart : [];
+                setCartItems(cartData);
+                calculateTotalPrice(cartData);
+                localStorage.setItem("cart", JSON.stringify(cartData));
+              } else {
+                throw new Error(data?.message || "Failed to load cart");
+              }
+            } catch (err) {
+              console.error("Failed to load cart from backend:", err);
+              // Fallback to localStorage
+              const savedCart = localStorage.getItem("cart");
+              if (savedCart) {
+                try {
+                  const parsed = JSON.parse(savedCart);
+                  const validCart = Array.isArray(parsed) ? parsed : [];
+                  setCartItems(validCart);
+                  calculateTotalPrice(validCart);
+                } catch (parseErr) {
+                  console.error("Failed to parse saved cart:", parseErr);
+                  localStorage.removeItem("cart");
+                  setCartItems([]);
+                  calculateTotalPrice([]);
+                }
+              } else {
+                setCartItems([]);
+                calculateTotalPrice([]);
+              }
+            }
+          } else {
+            // Not logged in: use localStorage only
+            const savedCart = localStorage.getItem("cart");
+            if (savedCart) {
+              try {
+                const parsed = JSON.parse(savedCart);
+                const validCart = Array.isArray(parsed) ? parsed : [];
+                setCartItems(validCart);
+                calculateTotalPrice(validCart);
+              } catch (parseErr) {
+                console.error("Failed to parse saved cart:", parseErr);
+                localStorage.removeItem("cart");
+                setCartItems([]);
+                calculateTotalPrice([]);
+              }
+            } else {
+              setCartItems([]);
+              calculateTotalPrice([]);
+            }
+          }
+        } catch (err) {
+          console.error("Error loading cart:", err);
+          setCartItems([]);
+          calculateTotalPrice([]);
+        }
+      };
+
+      loadCart();
+    };
+
+    window.addEventListener("authStateChanged", handleAuthStateChange);
+    return () =>
+      window.removeEventListener("authStateChanged", handleAuthStateChange);
+  }, []);
+
   // Calculate total price whenever cart items change
   const calculateTotalPrice = (items) => {
     if (!Array.isArray(items)) {
@@ -114,6 +193,9 @@ const AddCart = () => {
         setCartItems(updatedCart);
         calculateTotalPrice(updatedCart);
         localStorage.setItem("cart", JSON.stringify(updatedCart));
+
+        // Dispatch custom event to notify navbar of cart update
+        window.dispatchEvent(new CustomEvent("cartUpdated"));
       } catch (err) {
         console.error("Failed to update cart:", err);
         alert(err.message || "Failed to update cart");
@@ -127,6 +209,9 @@ const AddCart = () => {
       setCartItems(updatedCart);
       calculateTotalPrice(updatedCart);
       localStorage.setItem("cart", JSON.stringify(updatedCart));
+
+      // Dispatch custom event to notify navbar of cart update
+      window.dispatchEvent(new CustomEvent("cartUpdated"));
     }
   };
 
@@ -150,6 +235,9 @@ const AddCart = () => {
         setCartItems(updatedCart);
         calculateTotalPrice(updatedCart);
         localStorage.setItem("cart", JSON.stringify(updatedCart));
+
+        // Dispatch custom event to notify navbar of cart update
+        window.dispatchEvent(new CustomEvent("cartUpdated"));
       } catch (err) {
         console.error("Failed to remove item:", err);
         alert(err.message || "Failed to remove item");
@@ -159,6 +247,9 @@ const AddCart = () => {
       setCartItems(updatedCart);
       calculateTotalPrice(updatedCart);
       localStorage.setItem("cart", JSON.stringify(updatedCart));
+
+      // Dispatch custom event to notify navbar of cart update
+      window.dispatchEvent(new CustomEvent("cartUpdated"));
     }
   };
 
@@ -167,6 +258,9 @@ const AddCart = () => {
     setCartItems([]);
     setTotalPrice(0);
     localStorage.removeItem("cart");
+
+    // Dispatch custom event to notify navbar of cart update
+    window.dispatchEvent(new CustomEvent("cartUpdated"));
   };
 
   // Handle Buy Now button click
@@ -308,7 +402,7 @@ const AddCart = () => {
                         {/* Remove Button */}
                         <button
                           onClick={() => removeItem(item.id)}
-                          className="text-red-500 hover:text-red-700 p-2 transition-colors"
+                          className="bg-red-50 hover:bg-red-100 text-red-600 hover:text-red-700 p-2 rounded-lg transition-colors border border-red-200 hover:border-red-300"
                           title="Remove item"
                         >
                           <svg
