@@ -1,6 +1,7 @@
 import express from "express";
 import {
   getCart,
+  clearCart,
   addToCart,
   updateCartItem,
   removeFromCart,
@@ -11,6 +12,7 @@ const router = express.Router();
 
 // All routes require user identification but no JWT
 router.get("/", attachUserById, getCart);
+router.delete("/", attachUserById, clearCart);
 router.post("/add", attachUserById, addToCart);
 router.put("/update", attachUserById, updateCartItem);
 router.delete("/remove/:id", attachUserById, removeFromCart);

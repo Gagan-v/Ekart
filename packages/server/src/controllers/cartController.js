@@ -148,3 +148,15 @@ export const removeFromCart = async (req, res) => {
       .json({ message: "server error", error: error.message });
   }
 };
+
+// Clear the persisted cart before the client removes its local copy.
+// The existing middleware attaches the user, so the body never chooses another account.
+export const clearCart = async (req, res) => {
+  try {
+    req.user.cart = [];
+    await req.user.save();
+    return res.json({ cart: [] });
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to clear cart", error: error.message });
+  }
+};

@@ -1,3 +1,4 @@
+import { Alert } from "@mui/material";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -6,6 +7,8 @@ const AddCart = () => {
   const [totalPrice, setTotalPrice] = useState(0);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const [clearing, setClearing] = useState(false);
+  const [cartError, setCartError] = useState("");
 
   // Load cart items from DB for logged-in users, localStorage for guests
   useEffect(() => {
@@ -253,21 +256,34 @@ const AddCart = () => {
     }
   };
 
-  // Clear entire cart
-  const clearCart = () => {
-    setCartItems([]);
-    setTotalPrice(0);
-    localStorage.removeItem("cart");
-
-    // Dispatch custom event to notify navbar of cart update
-    window.dispatchEvent(new CustomEvent("cartUpdated"));
+  // Logged-in carts live in MongoDB. Wait for the API before clearing the UI;
+  // otherwise a failed request would make saved items reappear on refresh.
+  const clearCart = async () => {
+    if (clearing) return;
+    setClearing(true);
+    setCartError("");
+    try {
+      const user = JSON.parse(localStorage.getItem("authUser") || "null");
+      if (user?.id) {
+        const response = await fetch("http://localhost:5001/api/cart", {
+          method: "DELETE",
+          headers: { "x-user-id": user.id },
+        });
+        if (!response.ok) throw new Error("Unable to clear your cart. Please try again.");
+      }
+      localStorage.removeItem("cart");
+      setCartItems([]);
+      setTotalPrice(0);
+      window.dispatchEvent(new Event("cartUpdated"));
+    } catch (error) {
+      setCartError(error.message || "Unable to clear your cart.");
+    } finally {
+      setClearing(false);
+    }
   };
 
-  // Handle Buy Now button click
-  const handleBuyNow = () => {
-    // TODO: Implement checkout functionality
-    alert("Checkout functionality will be implemented later!");
-  };
+  // Payment is a separate route; navigating does not place an order or empty the cart.
+  const handleBuyNow = () => navigate("/payment");
 
   // Show loading state
   if (loading) {
@@ -313,6 +329,7 @@ const AddCart = () => {
   return (
     <div className="min-h-screen bg-gray-50 pt-20">
       <div className="max-w-6xl mx-auto px-4 py-8">
+        {cartError && <Alert severity="error" sx={{ mb: 3 }}>{cartError}</Alert>}
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-800 mb-2">
@@ -429,9 +446,10 @@ const AddCart = () => {
               <div className="p-6 border-t border-gray-200">
                 <button
                   onClick={clearCart}
+                  disabled={clearing}
                   className="text-red-500 hover:text-red-700 font-medium transition-colors"
                 >
-                  Clear Cart
+                  {clearing ? "Clearing…" : "Clear Cart"}
                 </button>
               </div>
             </div>
@@ -471,6 +489,7 @@ const AddCart = () => {
               <div className="space-y-3">
                 <button
                   onClick={handleBuyNow}
+                  disabled={clearing}
                   className="w-full bg-orange-500 hover:bg-orange-600 text-white py-3 px-4 rounded-lg font-semibold transition-colors"
                 >
                   Buy Now
@@ -498,11 +517,11 @@ const AddCart = () => {
                     />
                   </svg>
                   <span className="text-sm text-green-700 font-medium">
-                    Secure Checkout
+                    Payment preview
                   </span>
                 </div>
                 <p className="text-xs text-green-600 mt-1">
-                  Your payment information is safe and encrypted
+                  Payment integration is coming soon.
                 </p>
               </div>
             </div>
