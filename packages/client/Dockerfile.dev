@@ -1,0 +1,24 @@
+# this file lets you develop with hot reloading inside Docker.
+# Use lightweight Node image
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Enable pnpm if used
+RUN corepack enable && corepack prepare pnpm@latest --activate
+
+# Copy dependency files and install
+COPY package.json pnpm-lock.yaml ./
+RUN pnpm install
+# ^ Install all dependencies. (Not using --prod because we need dev deps here.)
+
+# Copy everything (source, public, etc.)
+COPY . .
+
+# Expose default React dev server port
+EXPOSE 3000
+
+# Start the React app in development mode
+CMD ["pnpm", "dev"]
+# ^ Runs the "start" script from package.json,
+#   which launches the React development server with hot reload.

@@ -1,7 +1,7 @@
 import { Route, Routes } from "react-router-dom";
 import AdminLogin from "../pages/adminLogin";
 import AdminDash from "../pages/adminDash";
-import AddProduct from "../components/addproduct";
+import AddProduct from "../components/AddProduct";
 import ProductMaintenance from "../pages/ProductMaintenance";
 const AdminRoutes = () => {
   return (
