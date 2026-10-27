@@ -33,7 +33,7 @@ const AddProduct = () => {
     }
     const fetchCount = async () => {
       try {
-        const res = await fetch("http://localhost:5000/api/products/count", {
+        const res = await fetch("http://localhost:5001/api/products/count", {
           headers: { Authorization: `Bearer ${adminToken}` },
         });
         const data = await res.json();
@@ -139,7 +139,7 @@ const AddProduct = () => {
 
       // Make API call
       const response = await fetch(
-        "http://localhost:5000/api/admin/products/add-product",
+        "http://localhost:5001/api/admin/products/add-product",
         {
           method: "POST",
           headers: {
@@ -157,7 +157,7 @@ const AddProduct = () => {
         resetForm();
         // refresh count
         try {
-          const res2 = await fetch("http://localhost:5000/api/products/count", {
+          const res2 = await fetch("http://localhost:5001/api/products/count", {
             headers: { Authorization: `Bearer ${adminToken}` },
           });
           const d2 = await res2.json();

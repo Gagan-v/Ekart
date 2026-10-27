@@ -14,7 +14,7 @@ const Mobile = () => {
       try {
         setLoading(true);
         const response = await axios.get(
-          "http://localhost:5000/api/admin/products"
+          "http://localhost:5001/api/admin/products"
         );
         // Filter products where category is "mobile"
         const mobileProducts = response.data.filter(
@@ -44,7 +44,7 @@ const Mobile = () => {
     if (user?.id) {
       // Logged in: persist to backend cart tied to this user
       try {
-        const res = await fetch("http://localhost:5000/api/cart/add", {
+        const res = await fetch("http://localhost:5001/api/cart/add", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

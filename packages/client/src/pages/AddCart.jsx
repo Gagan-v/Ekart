@@ -16,7 +16,7 @@ const AddCart = () => {
         if (user?.id) {
           // Logged in: fetch from backend
           try {
-            const res = await fetch("http://localhost:5000/api/cart", {
+            const res = await fetch("http://localhost:5001/api/cart", {
               headers: { "x-user-id": user.id },
             });
             const data = await res.json();
@@ -93,7 +93,7 @@ const AddCart = () => {
           if (user?.id) {
             // Logged in: fetch from backend
             try {
-              const res = await fetch("http://localhost:5000/api/cart", {
+              const res = await fetch("http://localhost:5001/api/cart", {
                 headers: { "x-user-id": user.id },
               });
               const data = await res.json();
@@ -181,7 +181,7 @@ const AddCart = () => {
     const user = JSON.parse(localStorage.getItem("authUser") || "null");
     if (user?.id) {
       try {
-        const res = await fetch("http://localhost:5000/api/cart/update", {
+        const res = await fetch("http://localhost:5001/api/cart/update", {
           method: "PUT",
           headers: { "Content-Type": "application/json", "x-user-id": user.id },
           body: JSON.stringify({ productId, quantity: newQuantity }),
@@ -222,7 +222,7 @@ const AddCart = () => {
     if (user?.id) {
       try {
         const res = await fetch(
-          `http://localhost:5000/api/cart/remove/${productId}`,
+          `http://localhost:5001/api/cart/remove/${productId}`,
           {
             method: "DELETE",
             headers: { "x-user-id": user.id },

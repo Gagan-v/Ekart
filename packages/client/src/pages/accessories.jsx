@@ -14,7 +14,7 @@ const Accessories = () => {
       try {
         setLoading(true);
         const response = await axios.get(
-          "http://localhost:5000/api/admin/products"
+          "http://localhost:5001/api/admin/products"
         );
         // Filter products where category is "accessories"
         const accessoryProducts = response.data.filter(
@@ -43,7 +43,7 @@ const Accessories = () => {
     const productId = product._id;
     if (user?.id) {
       try {
-        const res = await fetch("http://localhost:5000/api/cart/add", {
+        const res = await fetch("http://localhost:5001/api/cart/add", {
           method: "POST",
           headers: { "Content-Type": "application/json", "x-user-id": user.id },
           body: JSON.stringify({ productId, quantity: 1 }),

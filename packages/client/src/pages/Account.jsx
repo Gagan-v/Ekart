@@ -55,7 +55,7 @@ export default function Account() {
       // Only send fields we allow to update: name and password, plus userId
       const body = { userId: u.id, name: username };
       if (password) body.password = password;
-      const res = await fetch("http://localhost:5000/api/auth/update", {
+      const res = await fetch("http://localhost:5001/api/auth/update", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),

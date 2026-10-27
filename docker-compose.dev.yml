@@ -39,10 +39,11 @@ services:
       context: .
       dockerfile: packages/server/Dockerfile
     ports:
-      - "5000:5000"
+      - "5001:5001"
     depends_on:
       - mongodb
     environment:
+      PORT: 5001
       MONGO_URI: mongodb://mongodb:27017/ekart
     volumes:
       - ./packages/server:/app/packages/server

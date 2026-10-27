@@ -30,7 +30,7 @@ const ProductMaintenance = () => {
     const fetchProducts = async () => {
       setLoading(true);
       try {
-        const res = await fetch("http://localhost:5000/api/admin/products", {
+        const res = await fetch("http://localhost:5001/api/admin/products", {
           headers: { Authorization: `Bearer ${adminToken}` },
         });
         const data = await res.json();
@@ -60,7 +60,7 @@ const ProductMaintenance = () => {
     }
     try {
       const res = await fetch(
-        `http://localhost:5000/api/admin/products/${product._id}/reduce`,
+        `http://localhost:5001/api/admin/products/${product._id}/reduce`,
         {
           method: "PATCH",
           headers: {
