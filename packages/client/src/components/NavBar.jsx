@@ -1,3 +1,4 @@
+import ProductSearch from "./ProductSearch";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { Badge, IconButton, Menu, MenuItem, ListItemText } from "@mui/material";
@@ -139,12 +140,12 @@ export default function Navbar() {
   return <header className="store-header">
     <div className="header-main">
       <Link className="brand" to="/">e<span>kart.</span></Link>
-      <span className="header-tagline">Your everyday, upgraded.</span>
+      <ProductSearch />
       <div className="header-actions">
         <IconButton component={Link} to="/cart" aria-label={`Shopping cart, ${cartItemCount} items`}><Badge badgeContent={cartItemCount} color="primary"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><path d="M3 3h2l3 12h11l2-8H6M9 20h.01M18 20h.01" strokeLinecap="round" strokeLinejoin="round"/></svg></Badge></IconButton>
         {isLoggedIn ? <><IconButton onClick={handleProfileClick} aria-label="Account menu" aria-haspopup="menu" aria-expanded={Boolean(anchorEl)}><AccountCircleIcon /></IconButton><Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleMenuClose}><MenuItem disabled><ListItemText primary={userName} /></MenuItem><MenuItem onClick={handleAccountClick}>My account</MenuItem><MenuItem onClick={handleLogout}>Sign out</MenuItem></Menu></> : <Link className="sign-in" to="/login">Sign in <span aria-hidden="true">↗</span></Link>}
       </div>
     </div>
-    <nav className="category-nav" aria-label="Shop categories"><NavLink to="/" end>Discover</NavLink><NavLink to="/mobile">Mobile phones</NavLink><NavLink to="/laptop">Laptops</NavLink><NavLink to="/accessories">Accessories</NavLink><span>Find your next favorite.</span></nav>
+    <nav className="category-nav" aria-label="Shop categories"><NavLink to="/" end>Discover</NavLink><NavLink to="/products">All products</NavLink><NavLink to="/mobile">Mobile phones</NavLink><NavLink to="/laptop">Laptops</NavLink><NavLink to="/accessories">Accessories</NavLink><span>Find your next favorite.</span></nav>
   </header>;
 }
