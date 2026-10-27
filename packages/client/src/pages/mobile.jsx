@@ -1,3 +1,4 @@
+import { Dialog, Snackbar, Alert } from "@mui/material";
 import { useState, useEffect } from "react";
 
 import axios from "axios";
@@ -8,6 +9,7 @@ const Mobile = () => {
   const [error, setError] = useState(null);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [selectedImage, setSelectedImage] = useState("image1");
+  const [notice, setNotice] = useState("");
 
   useEffect(() => {
     const fetchMobileProducts = async () => {
@@ -58,7 +60,7 @@ const Mobile = () => {
         const cartData = Array.isArray(data.cart) ? data.cart : [];
         localStorage.setItem("cart", JSON.stringify(cartData));
         window.dispatchEvent(new Event("cartUpdated"));
-        alert(`${product.title || "Product"} added to cart!`);
+        setNotice(`${product.title || "Product"} added to cart!`);
       } catch (err) {
         console.error("Failed to add to cart:", err);
         alert(err.message || "Failed to add to cart");
@@ -83,7 +85,7 @@ const Mobile = () => {
         }
         localStorage.setItem("cart", JSON.stringify(validCart));
         window.dispatchEvent(new Event("cartUpdated"));
-        alert(`${product.title || "Product"} added to cart!`);
+        setNotice(`${product.title || "Product"} added to cart!`);
       } catch (err) {
         console.error("Failed to add to cart locally:", err);
         alert("Failed to add to cart");
@@ -194,6 +196,10 @@ const Mobile = () => {
               <div
                 key={product._id}
                 className="bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100 cursor-pointer"
+                tabIndex={0}
+                role="button"
+                aria-label={`View ${product.title}`}
+                onKeyDown={(event) => { if (event.target === event.currentTarget && (event.key === "Enter" || event.key === " ")) { event.preventDefault(); handleProductClick(product); } }}
                 onClick={() => handleProductClick(product)}
               >
                 {/* Product Image */}
@@ -297,12 +303,13 @@ const Mobile = () => {
 
         {/* Product Detail Modal */}
         {selectedProduct && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+          <Dialog open onClose={closeProductDetail} maxWidth="md" fullWidth aria-label={`${selectedProduct.title} details`}>
+            <div className="product-dialog bg-white rounded-xl max-w-4xl w-full overflow-y-auto">
               <div className="p-6">
                 {/* Close Button */}
                 <button
                   onClick={closeProductDetail}
+                  aria-label="Close product details"
                   className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 text-2xl"
                 >
                   ×
@@ -455,8 +462,9 @@ const Mobile = () => {
                 </div>
               </div>
             </div>
-          </div>
+          </Dialog>
         )}
+        <Snackbar open={Boolean(notice)} autoHideDuration={3500} onClose={() => setNotice("")} anchorOrigin={{ vertical: "bottom", horizontal: "center" }}><Alert severity="success" onClose={() => setNotice("")}>{notice}</Alert></Snackbar>
       </div>
     </div>
   );

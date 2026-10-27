@@ -6,7 +6,7 @@ const AdminDash = () => {
 
   // Logout → takes to /admin/login
   const handleLogout = () => {
-    // later we’ll also clear token/session
+    localStorage.removeItem("adminToken");
     navigate("/admin/login");
   };
 

@@ -37,7 +37,7 @@ const AdminLogin = () => {
   };
   return (
     <div className="admin">
-      <h1>AdminLogin</h1>
+
       <Container maxWidth="sm">
         <Paper elevation={3} sx={{ p: 4, mt: 8 }}>
           <Typography variant="h5" align="center" gutterBottom>
