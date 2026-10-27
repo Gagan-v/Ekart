@@ -1,0 +1,8 @@
+node_modules
+build
+.dockerignore
+.git
+.gitignore
+.env.local
+.vscode
+dist

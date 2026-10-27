@@ -1,0 +1,70 @@
+version: "3.8"
+
+services:
+  # -------------------------------
+  # MongoDB for server
+  # -------------------------------
+  mongodb:
+    image: mongo:7
+    container_name: ekart-mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - ./data/mongo:/data/db
+ # persists database on host (./data/mongo) so data isn’t lost when container stops.
+ 
+  # -------------------------------
+  # Strapi CMS
+  # -------------------------------
+  strapi:
+    build:
+      context: .
+      dockerfile: packages/strapi/Dockerfile
+    ports:
+      - "1337:1337"
+    depends_on:
+      - mongodb
+    env_file:
+      - ./packages/strapi/.env
+    volumes:
+      - ./packages/strapi:/app/packages/strapi
+      - strapi_node_modules:/app/packages/strapi/node_modules
+      - ./packages/strapi/public/uploads:/app/packages/strapi/public/uploads
+
+  # -------------------------------
+  # Server (Node/Express)
+  # -------------------------------
+  server:
+    build:
+      context: .
+      dockerfile: packages/server/Dockerfile
+    ports:
+      - "5000:5000"
+    depends_on:
+      - mongodb
+    environment:
+      MONGO_URI: mongodb://mongodb:27017/ekart
+    volumes:
+      - ./packages/server:/app/packages/server
+      - server_node_modules:/app/packages/server/node_modules
+
+  # -------------------------------
+  # Client (React/Next with Nginx)
+  # -------------------------------
+  client:
+    build:
+      context: .
+      dockerfile: packages/client/Dockerfile.dev
+    ports:
+      - "3000:80"   # maps container port 80 (Nginx) to host 3000
+    depends_on:
+      - server
+    volumes:
+      - ./packages/client:/app/packages/client
+
+# -------------------------------
+# Named volumes
+# -------------------------------
+volumes:
+  strapi_node_modules:
+  server_node_modules:
