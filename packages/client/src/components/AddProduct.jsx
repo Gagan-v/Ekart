@@ -114,10 +114,56 @@ const AddProduct = () => {
 
     try {
       // Convert image to base64 if provided
-      let imageUrl = "";
-      if (image) {
-        imageUrl = await convertImageToBase64(image);
+      const adminToken = localStorage.getItem("adminToken");
+
+      if (!adminToken) {
+        showMessage("error", "Please login as admin first");
+        return;
       }
+
+      let imageUrl = "";
+      let imageKey = "";
+
+      if (image && category === "mobile") {
+  // Ask Express for permission to upload.
+      const response = await fetch(
+      "http://localhost:5001/api/admin/uploads/presign",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${adminToken}`,
+        },
+        body: JSON.stringify({
+        contentType: image.type,
+          }),
+        }
+      );
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || "Could not prepare upload");
+  }
+
+  // Upload the actual image directly to S3.
+  const uploadResponse = await fetch(data.uploadUrl, {
+    method: "PUT",
+    headers: {
+      "Content-Type": image.type,
+    },
+    body: image,
+  });
+
+  if (!uploadResponse.ok) {
+    throw new Error("Image upload failed");
+  }
+
+  imageKey = data.key;
+} else if (image) {
+  // Keep existing behavior for other categories for now.
+  imageUrl = await convertImageToBase64(image);
+}
 
       // Prepare the request body - now using only main category
       const productData = {
@@ -127,15 +173,8 @@ const AddProduct = () => {
         stock: Number(stock),
         specs: specs.trim(),
         imageUrl,
+        imageKey,
       };
-
-      // Get admin token from localStorage
-      const adminToken = localStorage.getItem("adminToken");
-
-      if (!adminToken) {
-        showMessage("error", "Please login as admin first");
-        return;
-      }
 
       // Make API call
       const response = await fetch(

@@ -10,6 +10,7 @@ import adminRoutes from "./routes/adminRoutes.js";
 import productRoutes from "./routes/productsRoutes.js";
 import reviewRoutes from "./routes/reviewRoutes.js";
 import cartRoutes from "./routes/cartRoutes.js";
+import uploadRoutes from "./routes/uploadRoutes.js";
 
 dotenv.config();
 const app = express();
@@ -38,6 +39,9 @@ app.use("/api/reviews", reviewRoutes);
 
 // User Cart (no JWT; identifies via x-user-id or body)
 app.use("/api/cart", cartRoutes);
+
+//S3
+app.use("/api/admin/uploads", uploadRoutes);
 
 // DB connection
 connectDB().then(() => {
