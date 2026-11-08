@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { IconButton } from "@mui/material";
 
 /**
@@ -80,7 +81,8 @@ const Carousel = ({
       {slides.map((slide, index) => (
         <div
           key={index}
-          className={`absolute inset-0 w-full h-full flex flex-col items-start justify-center px-6 sm:px-8 lg:px-12 text-white transition-all duration-1000 ease-in-out ${
+          aria-hidden={index !== currentIndex}
+          className={`absolute inset-0 w-full h-full flex flex-col items-start justify-center px-16 sm:px-20 lg:px-24 text-white transition-all duration-1000 ease-in-out ${
             index === currentIndex
               ? "opacity-100 scale-100" // Current slide: fully visible and normal size
               : "opacity-0 scale-105 pointer-events-none" // Other slides: hidden and slightly larger
@@ -121,9 +123,9 @@ const Carousel = ({
             )}
 
             {/* Shop Now button - optional for later functionality */}
-            <button className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-8 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+            <Link to={slide.to || "/products"} tabIndex={index === currentIndex ? 0 : -1} className="inline-block bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-8 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
               Shop Now
-            </button>
+            </Link>
           </div>
         </div>
       ))}

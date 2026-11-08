@@ -182,16 +182,9 @@ const AddProduct = () => {
     }
   };
   return (
-    <div style={{ maxWidth: 600, margin: "20px auto", padding: "20px" }}>
+    <div className="product-editor">
       {/* Header with navigation */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: "30px",
-        }}
-      >
+      <div className="editor-header">
         <div>
           <h2 style={{ margin: 0 }}>Add New Product</h2>
           <div style={{ marginTop: "4px", color: "#555", fontSize: 14 }}>
@@ -217,8 +210,10 @@ const AddProduct = () => {
         {/* This replaces the previous two-dropdown system (category + subcategory) */}
         {/* Now admins select directly from: Mobile, Laptop, or Accessories */}
         <FormControl fullWidth margin="normal">
-          <InputLabel>Category</InputLabel>
+          <InputLabel id="product-category-label">Category</InputLabel>
           <Select
+            labelId="product-category-label"
+            label="Category"
             value={category}
             onChange={(e) => setCategory(e.target.value)}
           >
@@ -274,6 +269,7 @@ const AddProduct = () => {
         <input
           type="file"
           accept="image/*"
+          aria-label="Product image"
           onChange={(e) => setImage(e.target.files[0])}
           style={{ margin: "20px 0" }}
         />
@@ -299,7 +295,7 @@ const AddProduct = () => {
       >
         <Alert
           onClose={() => setShowSnackbar(false)}
-          severity={message.type}
+          severity={message.type || "info"}
           sx={{ width: "100%" }}
         >
           {message.text}

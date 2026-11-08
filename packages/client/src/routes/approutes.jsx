@@ -1,4 +1,6 @@
 import { Route, Routes } from "react-router-dom";
+import Payment from "../pages/Payment";
+import Products from "../pages/Products";
 import Home from "../pages/home";
 import Mobile from "../pages/mobile";
 import Laptops from "../pages/laptops";
@@ -15,6 +17,8 @@ const AppRoutes = () => {
     <div className="approutes">
       <Routes>
         <Route path="/" element={<Home />} />
+        <Route path="/payment" element={<Payment />} />
+        <Route path="/products" element={<Products />} />
         {/* Add more pages here */}
         {/* Simplified routes - direct category navigation */}
         <Route path="/mobile" element={<Mobile />} />
