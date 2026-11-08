@@ -20,6 +20,7 @@ const AddProduct = () => {
   const [stock, setStock] = useState("");
   const [specs, setSpecs] = useState("•");
   const [image, setImage] = useState(null); // for file
+  const [uploadedImage, setUploadedImage] = useState(null);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: "", text: "" });
   const [showSnackbar, setShowSnackbar] = useState(false);
@@ -33,7 +34,7 @@ const AddProduct = () => {
     }
     const fetchCount = async () => {
       try {
-        const res = await fetch("http://localhost:5001/api/products/count", {
+        const res = await fetch("http://localhost:5001/api/admin/products/count", {
           headers: { Authorization: `Bearer ${adminToken}` },
         });
         const data = await res.json();
@@ -69,6 +70,7 @@ const AddProduct = () => {
     setStock("");
     setSpecs("•");
     setImage(null);
+    setUploadedImage(null);
   };
 
   // Function to show message
@@ -113,7 +115,7 @@ const AddProduct = () => {
     setLoading(true);
 
     try {
-      // Convert image to base64 if provided
+      // Authenticate before preparing an image upload.
       const adminToken = localStorage.getItem("adminToken");
 
       if (!adminToken) {
@@ -125,45 +127,40 @@ const AddProduct = () => {
       let imageKey = "";
 
       if (image && category === "mobile") {
-  // Ask Express for permission to upload.
-      const response = await fetch(
-      "http://localhost:5001/api/admin/uploads/presign",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${adminToken}`,
-        },
-        body: JSON.stringify({
-        contentType: image.type,
-          }),
+        if (uploadedImage?.file === image) {
+          // Reuse a successful upload if saving the product previously failed.
+          imageKey = uploadedImage.key;
+        } else {
+          const response = await fetch(
+            "http://localhost:5001/api/admin/uploads/presign",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${adminToken}`,
+              },
+              body: JSON.stringify({ contentType: image.type }),
+            }
+          );
+          const data = await response.json();
+          if (!response.ok) {
+            throw new Error(data.message || "Could not prepare upload");
+          }
+
+          const uploadResponse = await fetch(data.uploadUrl, {
+            method: "PUT",
+            headers: { "Content-Type": image.type },
+            body: image,
+          });
+          if (!uploadResponse.ok) {
+            throw new Error(`S3 image upload failed (${uploadResponse.status})`);
+          }
+          imageKey = data.key;
+          setUploadedImage({ file: image, key: imageKey });
         }
-      );
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.message || "Could not prepare upload");
-  }
-
-  // Upload the actual image directly to S3.
-  const uploadResponse = await fetch(data.uploadUrl, {
-    method: "PUT",
-    headers: {
-      "Content-Type": image.type,
-    },
-    body: image,
-  });
-
-  if (!uploadResponse.ok) {
-    throw new Error("Image upload failed");
-  }
-
-  imageKey = data.key;
-} else if (image) {
-  // Keep existing behavior for other categories for now.
-  imageUrl = await convertImageToBase64(image);
-}
+      } else if (image) {
+        imageUrl = await convertImageToBase64(image);
+      }
 
       // Prepare the request body - now using only main category
       const productData = {
@@ -196,7 +193,7 @@ const AddProduct = () => {
         resetForm();
         // refresh count
         try {
-          const res2 = await fetch("http://localhost:5001/api/products/count", {
+          const res2 = await fetch("http://localhost:5001/api/admin/products/count", {
             headers: { Authorization: `Bearer ${adminToken}` },
           });
           const d2 = await res2.json();
@@ -209,7 +206,7 @@ const AddProduct = () => {
       }
     } catch (error) {
       console.error("Error adding product:", error);
-      showMessage("error", "Network error. Please try again.");
+      showMessage("error", error.message || "Could not add product. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -304,7 +301,7 @@ const AddProduct = () => {
           placeholder="Enter product specs..."
         />
 
-        {/* Image Upload (temporary - later connect to S3) */}
+        {/* Mobile images upload to S3. */}
         <input
           type="file"
           accept="image/*"

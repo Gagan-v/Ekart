@@ -1,8 +1,9 @@
 import express from "express";
 import { randomUUID } from "node:crypto";
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { adminAuth } from "../middleware/adminAuthMiddleware.js";
+import { imageStorage } from "../services/productImages.js";
 
 const router = express.Router();
 
@@ -22,15 +23,13 @@ router.post("/presign", adminAuth, async (req, res) => {
       });
     }
 
-    const s3 = new S3Client({
-      region: process.env.AWS_REGION,
-    });
+    const { s3, bucket } = imageStorage();
 
     const extension = imageTypes[contentType];
     const key = `products/mobile/${randomUUID()}.${extension}`;
 
     const command = new PutObjectCommand({
-      Bucket: process.env.AWS_S3_BUCKET,
+      Bucket: bucket,
       Key: key,
       ContentType: contentType,
     });

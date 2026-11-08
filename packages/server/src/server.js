@@ -1,6 +1,7 @@
 // server.js
 import express from "express";
 import dotenv from "dotenv";
+import { fileURLToPath } from "node:url";
 import connectDB from "../config/db.js";
 import cors from "cors";
 import helmet from "helmet";
@@ -12,7 +13,7 @@ import reviewRoutes from "./routes/reviewRoutes.js";
 import cartRoutes from "./routes/cartRoutes.js";
 import uploadRoutes from "./routes/uploadRoutes.js";
 
-dotenv.config();
+dotenv.config({ path: fileURLToPath(new URL("../.env", import.meta.url)) });
 const app = express();
 const PORT = process.env.PORT || 5001;
 

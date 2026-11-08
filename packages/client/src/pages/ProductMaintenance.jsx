@@ -12,12 +12,22 @@ import {
   Paper,
   Button,
   Stack,
+  Alert,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
 } from "@mui/material";
 
 const ProductMaintenance = () => {
   const navigate = useNavigate();
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+  const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
   // removed deleted count per new requirements
 
   const adminToken = useMemo(() => localStorage.getItem("adminToken"), []);
@@ -34,15 +44,45 @@ const ProductMaintenance = () => {
           headers: { Authorization: `Bearer ${adminToken}` },
         });
         const data = await res.json();
-        if (res.ok) setProducts(Array.isArray(data) ? data : []);
-      } catch {
-        // silent
+        if (!res.ok) throw new Error(data.message || "Could not load products");
+        setProducts(Array.isArray(data) ? data : []);
+      } catch (err) {
+        setError(err.message || "Could not load products. Check that the backend is running.");
       } finally {
         setLoading(false);
       }
     };
     fetchProducts();
   }, [adminToken, navigate]);
+
+  const handleDelete = async () => {
+    if (!deleteTarget || deleting) return;
+    setDeleting(true);
+    setError("");
+    setNotice("");
+    try {
+      const res = await fetch(
+        `http://localhost:5001/api/admin/products/${deleteTarget._id}`,
+        {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${adminToken}` },
+        }
+      );
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Could not delete product");
+      setProducts((prev) => prev.filter((p) => p._id !== deleteTarget._id));
+      setDeleteTarget(null);
+      setNotice(data.imageVersionRetained
+        ? "Product and current image deleted. S3 bucket versioning retains older image versions."
+        : data.imageDeleted
+          ? "Product and S3 image deleted."
+          : "Product deleted. This record had no associated S3 image key.");
+    } catch (err) {
+      setError(err.message || "Could not delete product. Please try again.");
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   const handleReduce = async (product) => {
     const input = window.prompt(
@@ -74,6 +114,9 @@ const ProductMaintenance = () => {
       if (res.ok) {
         if (data.deleted) {
           setProducts((prev) => prev.filter((p) => p._id !== product._id));
+          setNotice(data.imageVersionRetained
+            ? "Product deleted. S3 bucket versioning retains older image versions."
+            : "Product deleted because stock reached zero.");
         } else {
           setProducts((prev) =>
             prev.map((p) =>
@@ -85,7 +128,7 @@ const ProductMaintenance = () => {
         alert(data.message);
       }
     } catch {
-      // ignore
+      setError("Could not reduce stock. Check that the backend is running.");
     }
   };
 
@@ -115,6 +158,27 @@ const ProductMaintenance = () => {
           </Button>
         </Stack>
       </Stack>
+
+      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+      {notice && <Alert severity="success" sx={{ mb: 2 }}>{notice}</Alert>}
+
+      <Dialog open={Boolean(deleteTarget)} onClose={() => {
+        if (!deleting) setDeleteTarget(null);
+      }}>
+        <DialogTitle>Delete product?</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Delete “{deleteTarget?.title}” and its associated S3 image? This cannot be undone.
+          </DialogContentText>
+          {error && <Alert severity="error" sx={{ mt: 2 }}>{error}</Alert>}
+        </DialogContent>
+        <DialogActions>
+          <Button disabled={deleting} onClick={() => setDeleteTarget(null)}>Cancel</Button>
+          <Button color="error" disabled={deleting} onClick={handleDelete}>
+            {deleting ? "Deleting..." : "Delete"}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <TableContainer component={Paper}>
         <Table size="small">
@@ -150,6 +214,19 @@ const ProductMaintenance = () => {
                       variant="outlined"
                       size="small"
                       onClick={() => handleReduce(p)}
+                    >
+                      Reduce stock
+                    </Button>
+                    <Button
+                      variant="outlined"
+                      color="error"
+                      size="small"
+                      disabled={deleting}
+                      sx={{ ml: 1 }}
+                      onClick={() => {
+                        setError("");
+                        setDeleteTarget(p);
+                      }}
                     >
                       Delete
                     </Button>

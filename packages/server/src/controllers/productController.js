@@ -1,24 +1,24 @@
 import Product from "../model/Product.js";
-import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
+import { GetObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { deleteProductImage, imageStorage, mobileImagePrefix, productImageKey } from "../services/productImages.js";
 
 const withImageUrl = async (product) => {
   const data = product.toObject();
 
   // Keep existing images working for products without an S3 key.
-  if (!data.imageKey) {
+  const key = productImageKey(data);
+  if (!key) {
     return data;
   }
 
-  const s3 = new S3Client({
-    region: process.env.AWS_REGION,
-  });
+  const { s3, bucket } = imageStorage();
 
   data.imageUrl = await getSignedUrl(
     s3,
     new GetObjectCommand({
-      Bucket: process.env.AWS_S3_BUCKET,
-      Key: data.imageKey,
+      Bucket: bucket,
+      Key: key,
     }),
     { expiresIn: 3600 }
   );
@@ -31,20 +31,20 @@ export const createProduct = async (req, res) => {
     //we need to run conditions before creating the product
     // Removed subCategory from destructuring - now using only main categories
     const {
-  category,
-  title,
-  price,
-  stock,
-  specs,
-  imageUrl = "",
-  imageKey = "",
-} = req.body;
+      category,
+      title,
+      price,
+      stock,
+      specs,
+      imageUrl = "",
+      imageKey = "",
+    } = req.body;
     if (!category || !title || price == null || stock == null) {
       return res.status(400).json({ message: "Missing required fields" });
     }
     const numericPrice = Number(price);
     const numericStock = Number(stock);
-    if (Number.isNaN(numericPrice) || numericPrice < 0) {
+    if (!Number.isFinite(numericPrice) || numericPrice < 0) {
       return res
         .status(400)
         .json({ message: "Price must be a non-negative number" });
@@ -53,6 +53,9 @@ export const createProduct = async (req, res) => {
       return res
         .status(400)
         .json({ message: "Stock must be a non-negative integer" });
+    }
+    if (imageKey && (category !== "mobile" || typeof imageKey !== "string" || !imageKey.startsWith(mobileImagePrefix))) {
+      return res.status(400).json({ message: "S3 images must use the mobile product image prefix" });
     }
     const specsArray = Array.isArray(specs)
       ? specs
@@ -85,10 +88,9 @@ export const getProducts = async (_req, res) => {
   try {
     const products = await Product.find().sort({ createdAt: -1 });
     const productsWithImages = await Promise.all(
-  products.map(withImageUrl)
-);
-
-return res.json(productsWithImages);
+      products.map(withImageUrl)
+    );
+    return res.json(productsWithImages);
   } catch {
     return res.status(500).json({ message: "server error while getting" });
   }
@@ -118,13 +120,16 @@ export const getProductsCount = async (_req, res) => {
 export const deleteProduct = async (req, res) => {
   try {
     const { id } = req.params;
-    const deleted = await Product.findByIdAndDelete(id);
-    if (!deleted) {
+    const product = await Product.findById(id);
+    if (!product) {
       return res.status(404).json({ message: "Product not found" });
     }
-    return res.json({ message: "Product deleted", id });
+    const imageResult = await deleteProductImage(product);
+    await product.deleteOne();
+    return res.json({ message: "Product deleted", id, ...imageResult });
   } catch (err) {
-    return res.status(500).json({ message: "server error" });
+    console.error("Product deletion failed", { code: err.name, message: err.message });
+    return res.status(500).json({ message: err.message || "Could not delete product" });
   }
 };
 
@@ -151,12 +156,14 @@ export const reduceProductStock = async (req, res) => {
 
     const newStock = product.stock - reduceBy;
     if (newStock === 0) {
+      const imageResult = await deleteProductImage(product);
       await product.deleteOne();
       return res.json({
         message: "Product deleted as stock reached 0",
         id,
         stock: 0,
         deleted: true,
+        ...imageResult,
       });
     }
 
@@ -169,6 +176,7 @@ export const reduceProductStock = async (req, res) => {
       deleted: false,
     });
   } catch (err) {
-    return res.status(500).json({ message: "server error" });
+    console.error("Stock reduction failed", { code: err.name, message: err.message });
+    return res.status(500).json({ message: err.message || "Could not reduce stock" });
   }
 };
