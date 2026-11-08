@@ -1,5 +1,6 @@
 import { DeleteObjectCommand, S3Client } from "@aws-sdk/client-s3";
 
+export const maxProductImages = 4;
 export const mobileImagePrefix = "products/mobile/";
 
 export function imageStorage() {
@@ -27,9 +28,26 @@ export function productImageKey(product) {
   return decodeURIComponent(url.pathname.slice(1));
 }
 
+export function productImageKeys(product) {
+  return [...new Set([...(product.imageKeys || []), productImageKey(product)].filter(Boolean))];
+}
+
 export async function deleteProductImage(product) {
-  const key = productImageKey(product);
-  if (!key) return { imageDeleted: false };
+  const keys = productImageKeys(product);
+  if (!keys.length) return { imageDeleted: false };
+  // Validate every key before deleting any objects.
+  if (keys.some((key) => typeof key !== "string" || !key.startsWith(mobileImagePrefix))) {
+    throw new Error("Product image key is outside products/mobile/; image deletion was stopped");
+  }
+  let retained = false;
+  for (const key of keys) {
+    const result = await deleteImageKey(key);
+    retained ||= result.imageVersionRetained;
+  }
+  return { imageDeleted: true, imageVersionRetained: retained };
+}
+
+async function deleteImageKey(key) {
   if (typeof key !== "string" || !key.startsWith(mobileImagePrefix)) {
     throw new Error("Product image key is outside products/mobile/; image deletion was stopped");
   }

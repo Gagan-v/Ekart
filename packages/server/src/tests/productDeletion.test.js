@@ -118,3 +118,19 @@ test("keys outside the mobile prefix cannot delete S3 objects", async (t) => {
   await deleteProduct({ params: { id: "example" } }, res);
   assert.equal(res.code, 500);
 });
+
+
+test("deleting a product removes all gallery images exactly once", async (t) => {
+  const deleted = [];
+  let removed = false;
+  setup(t, {
+    imageKey: "products/mobile/main.jpg",
+    imageKeys: ["products/mobile/main.jpg", "products/mobile/second.png"],
+    async deleteOne() { removed = true; },
+  }, async (command) => { deleted.push(command.input.Key); return {}; });
+  const res = response();
+  await deleteProduct({ params: { id: "example" } }, res);
+  assert.equal(res.code, 200);
+  assert.equal(removed, true);
+  assert.deepEqual(deleted, ["products/mobile/main.jpg", "products/mobile/second.png"]);
+});

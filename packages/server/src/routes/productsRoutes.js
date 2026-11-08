@@ -6,6 +6,7 @@ import {
   getProductsCount,
   deleteProduct,
   reduceProductStock,
+  updateProduct,
 } from "../controllers/productController.js";
 import { adminAuth } from "../middleware/adminAuthMiddleware.js";
 
@@ -17,5 +18,6 @@ router.get("/:id", getProduct);
 router.post("/add-product", adminAuth, createProduct);
 router.delete("/:id", adminAuth, deleteProduct);
 router.patch("/:id/reduce", adminAuth, reduceProductStock);
+router.patch("/:id", adminAuth, updateProduct);
 
 export default router;

@@ -1,4 +1,6 @@
-import { useState, useEffect } from "react";
+import MobileImagePicker from "./MobileImagePicker";
+import { uploadMobileImages } from "../utils/uploadMobileImages";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   TextField,
@@ -20,7 +22,8 @@ const AddProduct = () => {
   const [stock, setStock] = useState("");
   const [specs, setSpecs] = useState("•");
   const [image, setImage] = useState(null); // for file
-  const [uploadedImage, setUploadedImage] = useState(null);
+  const [mobileImages, setMobileImages] = useState([]);
+  const uploadCache = useRef(new Map());
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: "", text: "" });
   const [showSnackbar, setShowSnackbar] = useState(false);
@@ -70,7 +73,8 @@ const AddProduct = () => {
     setStock("");
     setSpecs("•");
     setImage(null);
-    setUploadedImage(null);
+    setMobileImages([]);
+    uploadCache.current.clear();
   };
 
   // Function to show message
@@ -124,40 +128,9 @@ const AddProduct = () => {
       }
 
       let imageUrl = "";
-      let imageKey = "";
-
-      if (image && category === "mobile") {
-        if (uploadedImage?.file === image) {
-          // Reuse a successful upload if saving the product previously failed.
-          imageKey = uploadedImage.key;
-        } else {
-          const response = await fetch(
-            "http://localhost:5001/api/admin/uploads/presign",
-            {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${adminToken}`,
-              },
-              body: JSON.stringify({ contentType: image.type }),
-            }
-          );
-          const data = await response.json();
-          if (!response.ok) {
-            throw new Error(data.message || "Could not prepare upload");
-          }
-
-          const uploadResponse = await fetch(data.uploadUrl, {
-            method: "PUT",
-            headers: { "Content-Type": image.type },
-            body: image,
-          });
-          if (!uploadResponse.ok) {
-            throw new Error(`S3 image upload failed (${uploadResponse.status})`);
-          }
-          imageKey = data.key;
-          setUploadedImage({ file: image, key: imageKey });
-        }
+      let imageKeys = [];
+      if (category === "mobile") {
+        imageKeys = await uploadMobileImages(mobileImages, adminToken, uploadCache.current);
       } else if (image) {
         imageUrl = await convertImageToBase64(image);
       }
@@ -170,7 +143,8 @@ const AddProduct = () => {
         stock: Number(stock),
         specs: specs.trim(),
         imageUrl,
-        imageKey,
+        imageKey: imageKeys[0] || "",
+        imageKeys,
       };
 
       // Make API call
@@ -301,14 +275,12 @@ const AddProduct = () => {
           placeholder="Enter product specs..."
         />
 
-        {/* Mobile images upload to S3. */}
-        <input
-          type="file"
-          accept="image/*"
-          aria-label="Product image"
-          onChange={(e) => setImage(e.target.files[0])}
-          style={{ margin: "20px 0" }}
-        />
+        {category === "mobile" ? (
+          <MobileImagePicker images={mobileImages} onChange={setMobileImages} disabled={loading} />
+        ) : (
+          <input type="file" accept="image/*" aria-label="Product image"
+            disabled={loading} onChange={(e) => setImage(e.target.files[0])} style={{ margin: "20px 0" }} />
+        )}
 
         <Button
           type="submit"

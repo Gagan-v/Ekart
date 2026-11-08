@@ -1,5 +1,6 @@
 import { useSearchParams } from "react-router-dom";
 import ProductFilters from "../components/ProductFilters";
+import ProductImageGallery from "../components/ProductImageGallery";
 import { filterProducts } from "../utils/filterProducts";
 import { Dialog, Snackbar, Alert } from "@mui/material";
 import { useState, useEffect } from "react";
@@ -25,8 +26,8 @@ const Products = ({ category = "" }) => {
   const selectedProduct = productId
     ? products.find(product => product._id === productId) || null
     : clickedProduct;
-  const [selectedImage, setSelectedImage] = useState("image1");
   const [notice, setNotice] = useState("");
+
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -95,7 +96,7 @@ const Products = ({ category = "" }) => {
             quantity: 1,
             title: product.title || "Unknown Product",
             price: product.price || 0,
-            image1: product.image1 || "",
+            image1: product.imageUrls?.[0] || product.image1 || product.imageUrl || "",
             category: product.category || "mobile",
           });
         }
@@ -112,7 +113,6 @@ const Products = ({ category = "" }) => {
   // Handle product click to show detailed view
   const handleProductClick = (product) => {
     setSelectedProduct(product);
-    setSelectedImage("image1");
   };
 
   // Close product detail modal
@@ -124,7 +124,6 @@ const Products = ({ category = "" }) => {
       return next;
     }, { replace: true });
     setSelectedProduct(null);
-    setSelectedImage("image1");
   };
 
   // Render star rating
@@ -228,23 +227,7 @@ const Products = ({ category = "" }) => {
                 onKeyDown={(event) => { if (event.target === event.currentTarget && (event.key === "Enter" || event.key === " ")) { event.preventDefault(); handleProductClick(product); } }}
                 onClick={() => handleProductClick(product)}
               >
-                {/* Product Image */}
-                <div className="aspect-w-16 aspect-h-12 bg-gray-200 flex items-center justify-center">
-                  {product.image1 || product.imageUrl ? (
-                    <img
-                      src={product.image1 || product.imageUrl}
-                      alt={product.title}
-                      className="w-full h-48 object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-48 bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
-                      <div className="text-center">
-                        <div className="text-4xl text-gray-400 mb-2">📱</div>
-                        <p className="text-gray-500 text-sm">image1</p>
-                      </div>
-                    </div>
-                  )}
-                </div>
+                <ProductImageGallery key={product._id} product={product} compact />
 
                 {/* Product Details */}
                 <div className="p-6">
@@ -342,70 +325,7 @@ const Products = ({ category = "" }) => {
                 </button>
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                  {/* Left Side - Product Images */}
-                  <div>
-                    {/* Main Product Image */}
-                    <div className="mb-4">
-                      <div className="aspect-w-1 aspect-h-1 bg-gray-200 rounded-lg overflow-hidden">
-                        {selectedProduct[selectedImage] ||
-                        selectedProduct.imageUrl ? (
-                          <img
-                            src={
-                              selectedProduct[selectedImage] ||
-                              selectedProduct.imageUrl
-                            }
-                            alt={selectedImage}
-                            className="w-full h-96 object-cover"
-                          />
-                        ) : (
-                          <div className="w-full h-96 bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
-                            <div className="text-center">
-                              <div className="text-6xl text-gray-400 mb-2">
-                                📱
-                              </div>
-                              <p className="text-gray-500">{selectedImage}</p>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Thumbnail Images */}
-                    <div className="grid grid-cols-3 gap-2">
-                      {["image1", "image2", "image3", "image4"].map(
-                        (imageKey) => (
-                          <button
-                            key={imageKey}
-                            onClick={() => setSelectedImage(imageKey)}
-                            className={`aspect-w-1 aspect-h-1 rounded-lg overflow-hidden border-2 ${
-                              selectedImage === imageKey
-                                ? "border-blue-500"
-                                : "border-gray-200"
-                            }`}
-                          >
-                            {selectedProduct[imageKey] ? (
-                              <img
-                                src={selectedProduct[imageKey]}
-                                alt={imageKey}
-                                className="w-full h-20 object-cover"
-                              />
-                            ) : (
-                              <div className="w-full h-20 bg-gray-200 flex items-center justify-center">
-                                <div className="text-center">
-                                  <div className="text-2xl text-gray-400">
-                                    📱
-                                  </div>
-                                  <p className="text-xs text-gray-500">
-                                    {imageKey}
-                                  </p>
-                                </div>
-                              </div>
-                            )}
-                          </button>
-                        )
-                      )}
-                    </div>
-                  </div>
+                  <ProductImageGallery key={selectedProduct._id} product={selectedProduct} />
 
                   {/* Right Side - Product Details */}
                   <div>

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import EditProductDialog from "../components/EditProductDialog";
 import {
   Container,
   Typography,
@@ -28,6 +29,8 @@ const ProductMaintenance = () => {
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [editTarget, setEditTarget] = useState(null);
+  const [warning, setWarning] = useState("");
   // removed deleted count per new requirements
 
   const adminToken = useMemo(() => localStorage.getItem("adminToken"), []);
@@ -161,6 +164,20 @@ const ProductMaintenance = () => {
 
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
       {notice && <Alert severity="success" sx={{ mb: 2 }}>{notice}</Alert>}
+      {warning && <Alert severity="warning" sx={{ mb: 2 }}>{warning}</Alert>}
+
+      <EditProductDialog
+        product={editTarget}
+        adminToken={adminToken}
+        onClose={() => setEditTarget(null)}
+        onSaved={(updated, cleanupWarning) => {
+          setProducts((prev) => prev.map((p) => p._id === updated._id ? updated : p));
+          setEditTarget(null);
+          setError("");
+          setNotice("Product updated.");
+          setWarning(cleanupWarning || "");
+        }}
+      />
 
       <Dialog open={Boolean(deleteTarget)} onClose={() => {
         if (!deleting) setDeleteTarget(null);
@@ -210,6 +227,20 @@ const ProductMaintenance = () => {
                   <TableCell>{p.category}</TableCell>
                   <TableCell>{p.subCategory}</TableCell>
                   <TableCell align="right">
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      disabled={deleting}
+                      sx={{ mr: 1 }}
+                      onClick={() => {
+                        setError("");
+                        setNotice("");
+                        setWarning("");
+                        setEditTarget(p);
+                      }}
+                    >
+                      Edit
+                    </Button>
                     <Button
                       variant="outlined"
                       size="small"
