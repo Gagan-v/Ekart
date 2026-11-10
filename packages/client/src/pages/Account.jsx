@@ -1,3 +1,4 @@
+import { apiFetch } from "../api/config";
 import { useEffect, useState } from "react";
 import {
   TextField,
@@ -11,11 +12,12 @@ import { useNavigate } from "react-router-dom";
 
 // Account Settings page
 // Shows current username and email. Allows updating username and password.
-// We removed JWT for users; we identify the user by sending their DB id in the request body or header.
+// Profile updates use the verified HttpOnly customer session.
 export default function Account() {
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [currentPassword, setCurrentPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -23,16 +25,14 @@ export default function Account() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Load current user from localStorage (our session-like store)
-    const raw = localStorage.getItem("authUser");
-    if (!raw) return navigate("/login");
-    try {
-      const u = JSON.parse(raw);
-      setUsername(u.name || "");
-      setEmail(u.email || "");
-    } catch {
-      navigate("/login");
-    }
+    let active = true;
+    apiFetch("/api/auth/me").then(async (response) => {
+      if (response.status === 401) { navigate("/login"); return; }
+      if (!response.ok) throw new Error("Could not load your account");
+      const user = await response.json();
+      if (active) { setUsername(user.name || ""); setEmail(user.email || ""); }
+    }).catch((error) => { if (active) setError(error.message); });
+    return () => { active = false; };
   }, [navigate]);
 
   const onSubmit = async (e) => {
@@ -44,18 +44,12 @@ export default function Account() {
       setError("Passwords do not match");
       return;
     }
-    const raw = localStorage.getItem("authUser");
-    if (!raw) {
-      setError("Please login again");
-      return navigate("/login");
-    }
-    const u = JSON.parse(raw);
     setLoading(true);
     try {
-      // Only send fields we allow to update: name and password, plus userId
-      const body = { userId: u.id, name: username };
-      if (password) body.password = password;
-      const res = await fetch("http://localhost:5001/api/auth/update", {
+      // The backend selects the account from the verified session.
+      const body = { name: username };
+      if (password) { body.password = password; body.currentPassword = currentPassword; }
+      const res = await apiFetch("/api/auth/update", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
@@ -85,6 +79,7 @@ export default function Account() {
     } finally {
       setLoading(false);
       setPassword("");
+      setCurrentPassword("");
       setConfirm("");
     }
   };
@@ -115,6 +110,7 @@ export default function Account() {
               required
             />
             <TextField label="Email" value={email} fullWidth disabled />
+            <TextField label="Current password (required to change password)" type="password" value={currentPassword} onChange={(event) => setCurrentPassword(event.target.value)} autoComplete="current-password" />
             <TextField
               label="New Password"
               type="password"

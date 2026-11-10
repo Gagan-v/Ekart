@@ -1,47 +1,33 @@
+import ImageUpload from "../model/ImageUpload.js";
+import { scheduleCleanup } from "../services/imageCleanup.js";
 import Product from "../model/Product.js";
-import { GetObjectCommand, HeadObjectCommand } from "@aws-sdk/client-s3";
-import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import { deleteProductImage, imageStorage, mobileImagePrefix, productImageKeys, maxProductImages } from "../services/productImages.js";
+import { HeadObjectCommand } from "@aws-sdk/client-s3";
+import { deleteProductImage, imageStorage, validProductImageKey, productCategories, maxImageBytes, imageReferenceQuery, productImageKeys, maxProductImages, withImageUrl } from "../services/productImages.js";
 
-function validateImageKeys(keys) {
+function validateImageKeys(keys, category) {
   if (!Array.isArray(keys) || keys.length > maxProductImages || new Set(keys).size !== keys.length ||
-      keys.some((key) => typeof key !== "string" || !/^products\/mobile\/[a-f0-9-]+\.(jpg|png|webp)$/.test(key))) {
-    return "Use up to four unique uploaded mobile images";
+      keys.some((key) => !validProductImageKey(key, category))) {
+    return "Use up to four unique uploaded product images";
   }
   return "";
 }
 
-async function verifyImages(keys) {
+async function verifyImages(keys, adminId) {
   if (!keys.length) return;
   const { s3, bucket } = imageStorage();
   for (const key of keys) {
+    // Extend the pending upload lease before attaching it to a product.
+    const upload = await ImageUpload.findOneAndUpdate({ key, adminId, state: "pending", cleanupAfter: { $gt: new Date() } },
+      { $set: { cleanupAfter: new Date(Date.now() + 24 * 60 * 60 * 1000) } }, { new: true });
+    if (!upload) throw new Error("Upload is missing, expired, or belongs to another admin");
+    if (await Product.exists(imageReferenceQuery(key))) throw new Error("Image is already attached to another product");
     const image = await s3.send(new HeadObjectCommand({ Bucket: bucket, Key: key }));
-    if (!["image/jpeg", "image/png", "image/webp"].includes(image.ContentType)) {
+    if (image.ContentLength > maxImageBytes || !["image/jpeg", "image/png", "image/webp"].includes(image.ContentType)) {
       throw new Error("Invalid image type");
     }
   }
 }
 
-const withImageUrl = async (product) => {
-  const data = product.toObject();
-
-  // Keep existing images working for products without an S3 key.
-  const keys = productImageKeys(data);
-  if (!keys.length) {
-    data.imageUrls = [...new Set([data.imageUrl, data.image1, data.image2, data.image3, data.image4].filter(Boolean))];
-    return data;
-  }
-  const { s3, bucket } = imageStorage();
-  data.imageKeys = keys;
-  data.imageUrls = await Promise.all(keys.map((key) => getSignedUrl(
-    s3, new GetObjectCommand({ Bucket: bucket, Key: key }), { expiresIn: 3600 }
-  )));
-  data.imageUrl = data.imageUrls[0] || "";
-  // Keep existing cards and cart consumers compatible.
-  for (let index = 0; index < 4; index++) data[`image${index + 1}`] = data.imageUrls[index] || "";
-
-  return data;
-};
 
 export const createProduct = async (req, res) => {
   try {
@@ -72,16 +58,13 @@ export const createProduct = async (req, res) => {
         .status(400)
         .json({ message: "Stock must be a non-negative integer" });
     }
-    if (imageKey && (category !== "mobile" || typeof imageKey !== "string" || !imageKey.startsWith(mobileImagePrefix))) {
-      return res.status(400).json({ message: "S3 images must use the mobile product image prefix" });
-    }
     const keys = imageKeys === undefined ? (imageKey ? [imageKey] : []) : imageKeys;
-    const imageError = validateImageKeys(keys);
-    if (imageError || (keys.length && category !== "mobile")) {
-      return res.status(400).json({ message: imageError || "S3 images are available for mobile products" });
+    const imageError = validateImageKeys(keys, category);
+    if (imageError || !productCategories.includes(category)) {
+      return res.status(400).json({ message: imageError || "Choose a valid product category" });
     }
     if (keys.length) {
-      try { await verifyImages(keys); }
+      try { await verifyImages(keys, req.admin?._id); }
       catch { return res.status(400).json({ message: "Could not verify uploaded images in S3. Check AWS access and retry." }); }
     }
     const specsArray = Array.isArray(specs)
@@ -161,11 +144,11 @@ export const updateProduct = async (req, res) => {
     const editingImages = Object.hasOwn(body, "imageKeys") || Object.hasOwn(body, "imageKey");
     const nextKeys = Object.hasOwn(body, "imageKeys") ? body.imageKeys : [body.imageKey];
     if (editingImages) {
-      const imageError = validateImageKeys(nextKeys);
-      if (imageError || product.category !== "mobile") {
-        return res.status(400).json({ message: imageError || "Image editing is available for mobile products" });
+      const imageError = validateImageKeys(nextKeys, product.category);
+      if (imageError) {
+        return res.status(400).json({ message: imageError });
       }
-      try { await verifyImages(nextKeys.filter((key) => !oldKeys.includes(key))); }
+      try { await verifyImages(nextKeys.filter((key) => !oldKeys.includes(key)), req.admin?._id); }
       catch { return res.status(400).json({ message: "Could not verify uploaded images in S3. Upload them again or check AWS access." }); }
       changes.imageKeys = nextKeys;
       changes.imageKey = nextKeys[0] || "";
@@ -173,6 +156,7 @@ export const updateProduct = async (req, res) => {
       for (let index = 1; index <= 4; index++) changes[`image${index}`] = "";
     }
 
+    if (editingImages) await scheduleCleanup(oldKeys.filter((key) => !nextKeys.includes(key)));
     Object.assign(product, changes);
     // Prepare the response before saving so a signing error cannot hide a saved update.
     const updatedProduct = await withImageUrl(product);
@@ -223,6 +207,7 @@ export const deleteProduct = async (req, res) => {
     if (!product) {
       return res.status(404).json({ message: "Product not found" });
     }
+    await scheduleCleanup(productImageKeys(product));
     const imageResult = await deleteProductImage(product);
     await product.deleteOne();
     return res.json({ message: "Product deleted", id, ...imageResult });
@@ -255,6 +240,7 @@ export const reduceProductStock = async (req, res) => {
 
     const newStock = product.stock - reduceBy;
     if (newStock === 0) {
+      await scheduleCleanup(productImageKeys(product));
       const imageResult = await deleteProductImage(product);
       await product.deleteOne();
       return res.json({

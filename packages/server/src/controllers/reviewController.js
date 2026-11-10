@@ -8,7 +8,7 @@ export const addReview = async (req, res) => {
     const userId = req.user.id; // Assuming user is authenticated and user ID is in req.user
 
     // Validate input
-    if (!productId || !rating || !comment) {
+    if (!productId || !Number.isInteger(rating) || rating < 1 || rating > 5 || typeof comment !== "string" || !comment.trim() || comment.length > 3000) {
       return res.status(400).json({
         success: false,
         message: "Product ID, rating, and comment are required",
@@ -89,7 +89,7 @@ export const getProductReviews = async (req, res) => {
 
     // Get reviews with user information
     const reviews = await ProductReview.find({ productId })
-      .populate("userId", "name email") // Populate user details
+      .populate("userId", "name") // Populate user details
       .sort({ createdAt: -1 }) // Sort by newest first
       .lean();
 

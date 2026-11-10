@@ -1,286 +1,90 @@
 import { Alert } from "@mui/material";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { apiFetch } from "../api/config";
 
 const AddCart = () => {
   const [cartItems, setCartItems] = useState([]);
-  const [totalPrice, setTotalPrice] = useState(0);
   const [loading, setLoading] = useState(true);
-  const navigate = useNavigate();
   const [clearing, setClearing] = useState(false);
   const [cartError, setCartError] = useState("");
+  const navigate = useNavigate();
+  const totalPrice = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const storeCart = (items) => {
+    setCartItems(items);
+    localStorage.setItem("cart", JSON.stringify(items));
+    window.dispatchEvent(new Event("cartUpdated"));
+  };
 
-  // Load cart items from DB for logged-in users, localStorage for guests
   useEffect(() => {
-    const loadCart = async () => {
+    let active = true;
+    let sequence = 0;
+    const load = async () => {
+      const requestId = ++sequence;
+      setLoading(true);
       try {
-        const user = JSON.parse(localStorage.getItem("authUser") || "null");
-
-        if (user?.id) {
-          // Logged in: fetch from backend
-          try {
-            const res = await fetch("http://localhost:5001/api/cart", {
-              headers: { "x-user-id": user.id },
-            });
-            const data = await res.json();
-            if (res.ok) {
-              const cartData = Array.isArray(data.cart) ? data.cart : [];
-              setCartItems(cartData);
-              calculateTotalPrice(cartData);
-              // Sync localStorage with backend data
-              localStorage.setItem("cart", JSON.stringify(cartData));
-            } else {
-              throw new Error(data?.message || "Failed to load cart");
-            }
-          } catch (err) {
-            console.error("Failed to load cart from backend:", err);
-            // Fallback to localStorage
-            const savedCart = localStorage.getItem("cart");
-            if (savedCart) {
-              try {
-                const parsed = JSON.parse(savedCart);
-                const validCart = Array.isArray(parsed) ? parsed : [];
-                setCartItems(validCart);
-                calculateTotalPrice(validCart);
-              } catch (parseErr) {
-                console.error("Failed to parse saved cart:", parseErr);
-                localStorage.removeItem("cart");
-                setCartItems([]);
-                calculateTotalPrice([]);
-              }
-            } else {
-              setCartItems([]);
-              calculateTotalPrice([]);
-            }
-          }
-        } else {
-          // Not logged in: use localStorage only
-          const savedCart = localStorage.getItem("cart");
-          if (savedCart) {
-            try {
-              const parsed = JSON.parse(savedCart);
-              const validCart = Array.isArray(parsed) ? parsed : [];
-              setCartItems(validCart);
-              calculateTotalPrice(validCart);
-            } catch (parseErr) {
-              console.error("Failed to parse saved cart:", parseErr);
-              localStorage.removeItem("cart");
-              setCartItems([]);
-              calculateTotalPrice([]);
-            }
-          } else {
-            setCartItems([]);
-            calculateTotalPrice([]);
-          }
-        }
-      } catch (err) {
-        console.error("Error loading cart:", err);
-        setCartItems([]);
-        calculateTotalPrice([]);
-      } finally {
-        setLoading(false);
-      }
+        const session = await apiFetch("/api/auth/me");
+        let items;
+        if (session.ok) {
+          const response = await apiFetch("/api/cart");
+          const data = await response.json();
+          if (!response.ok) throw new Error(data.message || "Could not load cart");
+          items = data.cart;
+        } else if (session.status === 401) {
+          let saved;
+          try { saved = JSON.parse(localStorage.getItem("cart") || "[]"); } catch { saved = []; }
+          const response = await apiFetch("/api/admin/products");
+          if (!response.ok) throw new Error("Could not refresh cart products");
+          const products = await response.json();
+          const byId = new Map(products.map((product) => [product._id, product]));
+          items = (Array.isArray(saved) ? saved : []).flatMap((item) => {
+            const product = byId.get(item?.id);
+            if (!product) return [];
+            const quantity = Number.isSafeInteger(item.quantity) && item.quantity > 0 ? item.quantity : 1;
+            return [{ id: product._id, title: product.title, price: product.price,
+              image1: product.imageUrl || product.image1 || "", category: product.category,
+              quantity, stock: product.stock, available: quantity <= product.stock }];
+          });
+        } else throw new Error("Could not verify your session");
+        if (active && requestId === sequence) { storeCart(items); setCartError(""); }
+      } catch (error) {
+        if (active && requestId === sequence) setCartError(error.message || "Could not load cart");
+      } finally { if (active && requestId === sequence) setLoading(false); }
     };
-
-    loadCart();
+    void load();
+    window.addEventListener("authStateChanged", load);
+    return () => { active = false; window.removeEventListener("authStateChanged", load); };
   }, []);
 
-  // Listen for auth state changes and reload cart when user logs in/out
-  useEffect(() => {
-    const handleAuthStateChange = () => {
-      // Reload cart when auth state changes (user login/logout)
-      const loadCart = async () => {
-        try {
-          const user = JSON.parse(localStorage.getItem("authUser") || "null");
-
-          if (user?.id) {
-            // Logged in: fetch from backend
-            try {
-              const res = await fetch("http://localhost:5001/api/cart", {
-                headers: { "x-user-id": user.id },
-              });
-              const data = await res.json();
-              if (res.ok) {
-                const cartData = Array.isArray(data.cart) ? data.cart : [];
-                setCartItems(cartData);
-                calculateTotalPrice(cartData);
-                localStorage.setItem("cart", JSON.stringify(cartData));
-              } else {
-                throw new Error(data?.message || "Failed to load cart");
-              }
-            } catch (err) {
-              console.error("Failed to load cart from backend:", err);
-              // Fallback to localStorage
-              const savedCart = localStorage.getItem("cart");
-              if (savedCart) {
-                try {
-                  const parsed = JSON.parse(savedCart);
-                  const validCart = Array.isArray(parsed) ? parsed : [];
-                  setCartItems(validCart);
-                  calculateTotalPrice(validCart);
-                } catch (parseErr) {
-                  console.error("Failed to parse saved cart:", parseErr);
-                  localStorage.removeItem("cart");
-                  setCartItems([]);
-                  calculateTotalPrice([]);
-                }
-              } else {
-                setCartItems([]);
-                calculateTotalPrice([]);
-              }
-            }
-          } else {
-            // Not logged in: use localStorage only
-            const savedCart = localStorage.getItem("cart");
-            if (savedCart) {
-              try {
-                const parsed = JSON.parse(savedCart);
-                const validCart = Array.isArray(parsed) ? parsed : [];
-                setCartItems(validCart);
-                calculateTotalPrice(validCart);
-              } catch (parseErr) {
-                console.error("Failed to parse saved cart:", parseErr);
-                localStorage.removeItem("cart");
-                setCartItems([]);
-                calculateTotalPrice([]);
-              }
-            } else {
-              setCartItems([]);
-              calculateTotalPrice([]);
-            }
-          }
-        } catch (err) {
-          console.error("Error loading cart:", err);
-          setCartItems([]);
-          calculateTotalPrice([]);
-        }
-      };
-
-      loadCart();
-    };
-
-    window.addEventListener("authStateChanged", handleAuthStateChange);
-    return () =>
-      window.removeEventListener("authStateChanged", handleAuthStateChange);
-  }, []);
-
-  // Calculate total price whenever cart items change
-  const calculateTotalPrice = (items) => {
-    if (!Array.isArray(items)) {
-      setTotalPrice(0);
-      return;
-    }
-    const total = items.reduce((sum, item) => {
-      const price = item?.price || 0;
-      const quantity = item?.quantity || 0;
-      return sum + price * quantity;
-    }, 0);
-    setTotalPrice(total);
-  };
-
-  // Update quantity of a specific item
-  const updateQuantity = async (productId, newQuantity) => {
-    if (newQuantity < 1 || !productId) return; // Prevent quantity from going below 1
-    const user = JSON.parse(localStorage.getItem("authUser") || "null");
-    if (user?.id) {
-      try {
-        const res = await fetch("http://localhost:5001/api/cart/update", {
-          method: "PUT",
-          headers: { "Content-Type": "application/json", "x-user-id": user.id },
-          body: JSON.stringify({ productId, quantity: newQuantity }),
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data?.message || "Failed to update cart");
-
-        const updatedCart = Array.isArray(data.cart) ? data.cart : [];
-        setCartItems(updatedCart);
-        calculateTotalPrice(updatedCart);
-        localStorage.setItem("cart", JSON.stringify(updatedCart));
-
-        // Dispatch custom event to notify navbar of cart update
-        window.dispatchEvent(new CustomEvent("cartUpdated"));
-      } catch (err) {
-        console.error("Failed to update cart:", err);
-        alert(err.message || "Failed to update cart");
-      }
-    } else {
-      const updatedCart = cartItems
-        .map((item) =>
-          item?.id === productId ? { ...item, quantity: newQuantity } : item
-        )
-        .filter(Boolean); // Remove any null/undefined items
-      setCartItems(updatedCart);
-      calculateTotalPrice(updatedCart);
-      localStorage.setItem("cart", JSON.stringify(updatedCart));
-
-      // Dispatch custom event to notify navbar of cart update
-      window.dispatchEvent(new CustomEvent("cartUpdated"));
-    }
-  };
-
-  // Remove item from cart
-  const removeItem = async (productId) => {
-    if (!productId) return;
-    const user = JSON.parse(localStorage.getItem("authUser") || "null");
-    if (user?.id) {
-      try {
-        const res = await fetch(
-          `http://localhost:5001/api/cart/remove/${productId}`,
-          {
-            method: "DELETE",
-            headers: { "x-user-id": user.id },
-          }
-        );
-        const data = await res.json();
-        if (!res.ok) throw new Error(data?.message || "Failed to remove item");
-
-        const updatedCart = Array.isArray(data.cart) ? data.cart : [];
-        setCartItems(updatedCart);
-        calculateTotalPrice(updatedCart);
-        localStorage.setItem("cart", JSON.stringify(updatedCart));
-
-        // Dispatch custom event to notify navbar of cart update
-        window.dispatchEvent(new CustomEvent("cartUpdated"));
-      } catch (err) {
-        console.error("Failed to remove item:", err);
-        alert(err.message || "Failed to remove item");
-      }
-    } else {
-      const updatedCart = cartItems.filter((item) => item?.id !== productId);
-      setCartItems(updatedCart);
-      calculateTotalPrice(updatedCart);
-      localStorage.setItem("cart", JSON.stringify(updatedCart));
-
-      // Dispatch custom event to notify navbar of cart update
-      window.dispatchEvent(new CustomEvent("cartUpdated"));
-    }
-  };
-
-  // Logged-in carts live in MongoDB. Wait for the API before clearing the UI;
-  // otherwise a failed request would make saved items reappear on refresh.
-  const clearCart = async () => {
+  const mutate = async (path, method, body, guestChange) => {
     if (clearing) return;
     setClearing(true);
     setCartError("");
     try {
-      const user = JSON.parse(localStorage.getItem("authUser") || "null");
-      if (user?.id) {
-        const response = await fetch("http://localhost:5001/api/cart", {
-          method: "DELETE",
-          headers: { "x-user-id": user.id },
-        });
-        if (!response.ok) throw new Error("Unable to clear your cart. Please try again.");
-      }
-      localStorage.removeItem("cart");
-      setCartItems([]);
-      setTotalPrice(0);
-      window.dispatchEvent(new Event("cartUpdated"));
-    } catch (error) {
-      setCartError(error.message || "Unable to clear your cart.");
-    } finally {
-      setClearing(false);
-    }
+      const hadSession = Boolean(localStorage.getItem("authUser"));
+      const session = await apiFetch("/api/auth/me");
+      if (session.ok) {
+        const response = await apiFetch(path, { method, headers: { "Content-Type": "application/json" }, ...(body && { body: JSON.stringify(body) }) });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.message || "Could not update cart");
+        storeCart(data.cart);
+      } else if (session.status === 401) {
+        if (hadSession) throw new Error("Session expired. Please sign in again.");
+        storeCart(guestChange());
+      } else throw new Error("Could not verify your session");
+    } catch (error) { setCartError(error.message || "Could not update cart"); }
+    finally { setClearing(false); }
   };
+  const updateQuantity = (productId, quantity) => {
+    if (!Number.isSafeInteger(quantity) || quantity < 1) return;
+    return mutate("/api/cart/update", "PUT", { productId, quantity }, () => {
+      const item = cartItems.find((entry) => entry.id === productId);
+      if (!item || quantity > item.stock) throw new Error(`Only ${item?.stock || 0} available in stock`);
+      return cartItems.map((entry) => entry.id === productId ? { ...entry, quantity, available: true } : entry);
+    });
+  };
+  const removeItem = (id) => mutate(`/api/cart/remove/${id}`, "DELETE", null, () => cartItems.filter((item) => item.id !== id));
+  const clearCart = () => mutate("/api/cart", "DELETE", null, () => []);
 
   // Payment is a separate route; navigating does not place an order or empty the cart.
   const handleBuyNow = () => navigate("/payment");
@@ -392,6 +196,7 @@ const AddCart = () => {
                           </p>
                         </div>
 
+                        {item.available === false && <span className="text-sm text-red-600">Only {item.stock} available</span>}
                         {/* Quantity Controls */}
                         <div className="flex items-center space-x-2">
                           <button
@@ -399,7 +204,7 @@ const AddCart = () => {
                               updateQuantity(item.id, (item.quantity || 1) - 1)
                             }
                             className="w-8 h-8 rounded-full bg-gray-200 hover:bg-gray-300 flex items-center justify-center text-gray-600 font-semibold transition-colors"
-                            disabled={(item.quantity || 1) <= 1}
+                            disabled={clearing || (item.quantity || 1) <= 1}
                           >
                             −
                           </button>
@@ -410,6 +215,7 @@ const AddCart = () => {
                             onClick={() =>
                               updateQuantity(item.id, (item.quantity || 1) + 1)
                             }
+                            disabled={clearing || item.quantity >= item.stock}
                             className="w-8 h-8 rounded-full bg-gray-200 hover:bg-gray-300 flex items-center justify-center text-gray-600 font-semibold transition-colors"
                           >
                             +

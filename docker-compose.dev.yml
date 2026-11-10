@@ -8,7 +8,7 @@ services:
     image: mongo:7
     container_name: ekart-mongo
     ports:
-      - "27017:27017"
+      - "127.0.0.1:27017:27017"
     volumes:
       - ./data/mongo:/data/db
  # persists database on host (./data/mongo) so data isn’t lost when container stops.
@@ -35,6 +35,9 @@ services:
   # Server (Node/Express)
   # -------------------------------
   server:
+    command: pnpm dev
+    env_file:
+      - ./packages/server/.env
     build:
       context: .
       dockerfile: packages/server/Dockerfile
@@ -43,6 +46,7 @@ services:
     depends_on:
       - mongodb
     environment:
+      NODE_ENV: development
       PORT: 5001
       MONGO_URI: mongodb://mongodb:27017/ekart
     volumes:
@@ -57,11 +61,15 @@ services:
       context: .
       dockerfile: packages/client/Dockerfile.dev
     ports:
-      - "3000:80"   # maps container port 80 (Nginx) to host 3000
+      - "5173:5173"
+    environment:
+      API_PROXY_TARGET: http://server:5001
+      CMS_PROXY_TARGET: http://strapi:1337
     depends_on:
       - server
     volumes:
       - ./packages/client:/app/packages/client
+      - client_node_modules:/app/packages/client/node_modules
 
 # -------------------------------
 # Named volumes
@@ -69,3 +77,5 @@ services:
 volumes:
   strapi_node_modules:
   server_node_modules:
+
+  client_node_modules:

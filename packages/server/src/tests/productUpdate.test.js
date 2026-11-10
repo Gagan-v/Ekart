@@ -1,3 +1,4 @@
+import ImageUpload from "../model/ImageUpload.js";
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { S3Client, HeadObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
@@ -34,6 +35,9 @@ function setup(t, send = async () => ({})) {
     async save() {},
   };
   t.mock.method(Product, "findById", async () => product);
+  t.mock.method(ImageUpload, "updateOne", async () => ({}));
+  t.mock.method(ImageUpload, "findOneAndUpdate", async () => ({ state: "pending" }));
+  t.mock.method(Product, "exists", async () => null);
   t.mock.method(S3Client.prototype, "send", send);
   t.mock.method(console, "error", () => {});
   return product;

@@ -4,7 +4,8 @@ const userSchema = new mongoose.Schema(
     // Display name / username used for login (renamed from name for clarity)
     name: {
       type: String,
-      require: [true, "Name is required"],
+      required: [true, "Name is required"],
+      unique: true,
       trim: true,
     },
     email: {
@@ -19,6 +20,7 @@ const userSchema = new mongoose.Schema(
       required: [true, "Password is required"],
       minlength: 6,
     },
+    sessionVersion: { type: Number, default: 0 },
     // Each user maintains their own cart in MongoDB
     // We tie cart items to the user's profile so it's persistent per account
     cart: [
@@ -32,7 +34,7 @@ const userSchema = new mongoose.Schema(
       },
     ],
   },
-  { timestamps: true }
+  { timestamps: true, optimisticConcurrency: true }
 );
 
 const User = mongoose.model("User", userSchema);

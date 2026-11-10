@@ -1,9 +1,10 @@
+import ImageUpload from "../model/ImageUpload.js";
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { S3Client, DeleteObjectCommand } from "@aws-sdk/client-s3";
 import Product from "../model/Product.js";
 import { deleteProduct, reduceProductStock } from "../controllers/productController.js";
-import { productImageKey } from "../services/productImages.js";
+import { productImageKey, imageReferenceQuery } from "../services/productImages.js";
 
 function response() {
   return {
@@ -26,6 +27,9 @@ function setup(t, product, send) {
   setEnv(t, "AWS_REGION", "us-east-2");
   setEnv(t, "AWS_S3_BUCKET", "test-images");
   t.mock.method(Product, "findById", async () => product);
+  t.mock.method(ImageUpload, "updateOne", async () => ({}));
+  t.mock.method(ImageUpload, "findOneAndUpdate", async () => ({ state: "pending" }));
+  t.mock.method(Product, "exists", async () => null);
   t.mock.method(S3Client.prototype, "send", send);
 }
 
@@ -108,9 +112,9 @@ test("legacy image URLs are recovered only from the configured bucket", (t) => {
   assert.equal(productImageKey({ imageUrl: "https://another-bucket.s3.us-east-2.amazonaws.com/products/mobile/example.jpg" }), "");
 });
 
-test("keys outside the mobile prefix cannot delete S3 objects", async (t) => {
+test("keys outside the product folders cannot delete S3 objects", async (t) => {
   setup(t, {
-    imageKey: "products/laptop/example.jpg",
+    imageKey: "other/example.jpg",
     async deleteOne() { assert.fail("must keep the product"); },
   }, async () => { assert.fail("must not call S3"); });
   t.mock.method(console, "error", () => {});
@@ -133,4 +137,16 @@ test("deleting a product removes all gallery images exactly once", async (t) => 
   assert.equal(res.code, 200);
   assert.equal(removed, true);
   assert.deepEqual(deleted, ["products/mobile/main.jpg", "products/mobile/second.png"]);
+});
+
+
+test("cleanup reference matching includes legacy signed URLs only for this bucket", (t) => {
+  setEnv(t, "AWS_REGION", "us-east-2");
+  setEnv(t, "AWS_S3_BUCKET", "test-images");
+  const query = imageReferenceQuery("products/mobile/example.jpg");
+  const regex = new RegExp(query.$or[2].imageUrl.$regex);
+  assert.equal(regex.test("https://test-images.s3.us-east-2.amazonaws.com/products/mobile/example.jpg?signature=old"), true);
+  assert.equal(regex.test("https://test-images.s3.amazonaws.com/products/mobile/example.jpg"), true);
+  assert.equal(regex.test("https://other.s3.us-east-2.amazonaws.com/products/mobile/example.jpg"), false);
+  assert.equal(regex.test("https://test-images.s3.us-east-2.amazonaws.com/products/mobile/exampleXjpg"), false);
 });

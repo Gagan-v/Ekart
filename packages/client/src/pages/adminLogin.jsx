@@ -1,3 +1,4 @@
+import { apiFetch } from "../api/config";
 import { useState } from "react";
 import {
   Container,
@@ -15,7 +16,7 @@ const AdminLogin = () => {
     e.preventDefault();
 
     try {
-      const res = await fetch("http://localhost:5001/api/admin/login", {
+      const res = await apiFetch("/api/admin/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password }),

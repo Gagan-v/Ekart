@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Alert, Button, Stack, Typography } from "@mui/material";
 
-export default function MobileImagePicker({ images, onChange, disabled = false }) {
+export default function ProductImagePicker({ images, onChange, disabled = false }) {
   const [error, setError] = useState("");
   const [previews, setPreviews] = useState([]);
   useEffect(() => {
@@ -18,6 +18,7 @@ export default function MobileImagePicker({ images, onChange, disabled = false }
         <input hidden type="file" multiple accept="image/jpeg,image/png,image/webp" disabled={disabled || images.length >= 4} onChange={(event) => {
           const files = Array.from(event.target.files || []);
           event.target.value = "";
+          if (files.some((file) => file.size > 5 * 1024 * 1024)) { setError("Each image must be 5 MB or smaller."); return; }
           if (files.some((file) => !["image/jpeg", "image/png", "image/webp"].includes(file.type))) {
             setError("Choose JPEG, PNG, or WebP images."); return;
           }

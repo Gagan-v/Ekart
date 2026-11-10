@@ -1,9 +1,9 @@
 import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
-import dotenv from "dotenv";
+import "../config/env.js";
 import Admin from "../model/Admin.js"; // note the .js extension for ESM
 
-dotenv.config();
+
 
 //connect DB
 mongoose
@@ -14,7 +14,7 @@ mongoose
 //create or update admin
 (async () => {
   try {
-    const hashedPassword = await bcrypt.hash(process.env.ADMIN_PASSWORD, 5);
+    const hashedPassword = await bcrypt.hash(process.env.ADMIN_PASSWORD, 12);
     const admin = await Admin.findOneAndUpdate(
       { username: process.env.ADMIN_USERNAME }, // search by username
       { username: process.env.ADMIN_USERNAME, password: hashedPassword },

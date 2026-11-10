@@ -1,3 +1,5 @@
+import { apiUrl } from "../api/config";
+import { apiFetch } from "../api/config";
 import { useSearchParams } from "react-router-dom";
 import ProductFilters from "../components/ProductFilters";
 import ProductImageGallery from "../components/ProductImageGallery";
@@ -34,7 +36,7 @@ const Products = ({ category = "" }) => {
       try {
         setLoading(true);
         const response = await axios.get(
-          "http://localhost:5001/api/admin/products"
+          apiUrl("/api/admin/products")
         );
         setProducts(Array.isArray(response.data) ? response.data : []);
       } catch (err) {
@@ -58,16 +60,21 @@ const Products = ({ category = "" }) => {
       return;
     }
 
-    const user = JSON.parse(localStorage.getItem("authUser") || "null");
+    let user;
+    try {
+      const hadSession = Boolean(localStorage.getItem("authUser"));
+      const response = await apiFetch("/api/auth/me");
+      if (response.ok) user = await response.json();
+      else if (response.status !== 401 || hadSession) throw new Error("Please sign in again before adding to your cart.");
+    } catch (error) { alert(error.message || "Could not verify your session"); return; }
     const productId = product._id;
-    if (user?.id) {
+    if (user?._id) {
       // Logged in: persist to backend cart tied to this user
       try {
-        const res = await fetch("http://localhost:5001/api/cart/add", {
+        const res = await apiFetch("/api/cart/add", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "x-user-id": user.id, // session-like user identification; no JWT
           },
           body: JSON.stringify({ productId, quantity: 1 }),
         });
@@ -89,11 +96,13 @@ const Products = ({ category = "" }) => {
         const validCart = Array.isArray(existingCart) ? existingCart : [];
         const idx = validCart.findIndex((item) => item?.id === productId);
         if (idx >= 0) {
+          if ((validCart[idx].quantity || 1) >= product.stock) throw new Error("No more stock available");
           validCart[idx].quantity = (validCart[idx].quantity || 1) + 1;
         } else {
           validCart.push({
             id: productId,
             quantity: 1,
+            stock: product.stock,
             title: product.title || "Unknown Product",
             price: product.price || 0,
             image1: product.imageUrls?.[0] || product.image1 || product.imageUrl || "",

@@ -1,5 +1,5 @@
 // Admin authentication controller
-// Uses JWT exclusively for admins. Users do NOT use JWT anywhere in this codebase.
+// Uses JWT exclusively for admins. Customers use separate HttpOnly sessions.
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
@@ -9,11 +9,14 @@ dotenv.config();
 
 export const adminLogin = async (req, res) => {
   try {
-    const { username, password } = req.body;
+    const { username, password } = req.body ?? {};
+    if (typeof username !== "string" || typeof password !== "string" || !username.trim() || Buffer.byteLength(password) > 72) {
+      return res.status(400).json({ message: "Enter admin username and password" });
+    }
     //check if admin exists
     const admin = await Admin.findOne({ username });
     if (!admin) {
-      return res.status(401).json({ messgae: "Invalid credentials" });
+      return res.status(401).json({ message: "Invalid credentials" });
     }
     //check password
     const isMatch = await bcrypt.compare(password, admin.password);
@@ -22,7 +25,7 @@ export const adminLogin = async (req, res) => {
     }
     //genrate token
     const token = jwt.sign(
-      { id: admin._id, role: admin.role },
+      { id: admin._id, role: "admin" },
       process.env.JWT_SECRET,
       { expiresIn: "7d" }
     );

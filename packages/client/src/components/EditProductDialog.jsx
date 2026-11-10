@@ -1,5 +1,6 @@
-import MobileImagePicker from "./MobileImagePicker";
-import { uploadMobileImages } from "../utils/uploadMobileImages";
+import { apiFetch } from "../api/config";
+import ProductImagePicker from "./ProductImagePicker";
+import { uploadProductImages } from "../utils/uploadProductImages";
 import { useEffect, useState, useRef } from "react";
 import {
   Alert, Button, Dialog, DialogActions, DialogContent, DialogTitle,
@@ -44,10 +45,10 @@ export default function EditProductDialog({ product, adminToken, onClose, onSave
     setError("");
     try {
       const body = { ...form, price: Number(form.price), stock: Number(form.stock) };
-      if (imagesChanged && product.category === "mobile") {
-        body.imageKeys = await uploadMobileImages(images, adminToken, uploadCache.current);
+      if (imagesChanged) {
+        body.imageKeys = await uploadProductImages(images, adminToken, uploadCache.current, product.category);
       }
-      const response = await fetch(`http://localhost:5001/api/admin/products/${product._id}`, {
+      const response = await apiFetch(`/api/admin/products/${product._id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${adminToken}` },
         body: JSON.stringify(body),
@@ -73,9 +74,8 @@ export default function EditProductDialog({ product, adminToken, onClose, onSave
             <TextField label="Price" name="price" type="number" value={form.price} onChange={change} disabled={saving} required slotProps={{ htmlInput: { min: 0, step: "any" } }} />
             <TextField label="Stock" name="stock" type="number" value={form.stock} onChange={change} disabled={saving} required slotProps={{ htmlInput: { min: 0, step: 1 } }} />
             <TextField label="Specifications (one per line)" name="specs" value={form.specs} onChange={change} disabled={saving} multiline rows={4} />
-            {product?.category === "mobile" ? (
-              <MobileImagePicker images={images} onChange={(next) => { setImages(next); setImagesChanged(true); }} disabled={saving} />
-            ) : product?.imageUrl && <img src={product.imageUrl} alt={product.title} style={{ maxWidth: "100%", height: 160, objectFit: "contain" }} />}
+            <ProductImagePicker images={images} onChange={(next) => { setImages(next); setImagesChanged(true); }} disabled={saving} />
+            {!images.length && !imagesChanged && product?.imageUrl && <img src={product.imageUrl} alt={product.title} style={{ height: 160, objectFit: "contain" }} />}
 
           </Stack>
         </DialogContent>

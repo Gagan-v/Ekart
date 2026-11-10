@@ -14,7 +14,8 @@ export const adminAuth = async (req, res, next) => {
     // 2.Extract token
     const token = authHeader.split(" ")[1];
     //3.verify token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ["HS256"] });
+    if (decoded.role !== "admin") return res.status(401).json({ message: "Not authorized as admin" });
     //find admin in DB
     const admin = await Admin.findById(decoded.id);
     if (!admin) {

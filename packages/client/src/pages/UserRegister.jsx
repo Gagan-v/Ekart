@@ -1,3 +1,4 @@
+import { apiFetch } from "../api/config";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
@@ -25,7 +26,7 @@ export default function UserRegister() {
     setSuccess("");
     setLoading(true);
     try {
-      const res = await fetch("http://localhost:5001/api/auth/register", {
+      const res = await apiFetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: username, email, password }),
@@ -78,6 +79,8 @@ export default function UserRegister() {
             />
             <TextField
               label="Password"
+              helperText="At least 8 characters"
+              slotProps={{ htmlInput: { minLength: 8, autoComplete: "new-password" } }}
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}

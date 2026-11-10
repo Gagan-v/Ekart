@@ -1,3 +1,4 @@
+import { apiFetch, setCustomer } from "../api/config";
 import ProductSearch from "./ProductSearch";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
@@ -74,8 +75,11 @@ export default function Navbar() {
       }
     };
 
-    // Initial load
-    updateAuthState();
+    // Verify the cookie before treating cached profile data as a login.
+    apiFetch("/api/auth/me").then(async (response) => {
+      if (response.ok) setCustomer(await response.json());
+      else if (response.status === 401) { setIsLoggedIn(false); setUserName(""); }
+    }).catch(() => { setIsLoggedIn(false); });
 
     // Listen for storage changes from other tabs
     const onStorage = () => {
@@ -104,7 +108,12 @@ export default function Navbar() {
     };
   }, []);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      const response = await apiFetch("/api/auth/logout", { method: "POST" });
+      if (!response.ok && response.status !== 401) throw new Error("Could not sign out");
+    } catch { alert("Could not sign out. Check your connection and retry."); return; }
+
     localStorage.removeItem("authUser");
     // Keep cart in DB, but clear local copy when logging out
     localStorage.removeItem("cart");

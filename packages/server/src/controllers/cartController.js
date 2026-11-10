@@ -1,162 +1,58 @@
-import User from "../model/User.js";
+import mongoose from "mongoose";
 import Product from "../model/Product.js";
+import { withImageUrl } from "../services/productImages.js";
 
-// Get user's cart with populated product details
+export async function cartResponse(user) {
+  const products = await Product.find({ _id: { $in: user.cart.map((item) => item.productId) } });
+  const byId = new Map(products.map((product) => [String(product._id), product]));
+  const items = [];
+  for (const item of user.cart) {
+    const product = byId.get(String(item.productId));
+    if (!product) continue;
+    const data = await withImageUrl(product);
+    items.push({ id: product._id, productId: product._id, title: product.title, price: product.price,
+      image1: data.imageUrl || data.image1 || "", category: product.category, stock: product.stock,
+      quantity: item.quantity, available: item.quantity <= product.stock });
+  }
+  return { cart: items };
+}
+
 export const getCart = async (req, res) => {
-  try {
-    const user = req.user;
-    // Populate product details for each cart item
-    const populatedUser = await User.findById(user._id).populate(
-      "cart.productId"
-    );
-
-    // Transform cart items to include product details
-    const cartItems = populatedUser.cart.map((item) => ({
-      id: item.productId._id,
-      productId: item.productId._id,
-      title: item.productId.title,
-      price: item.productId.price,
-      image1: item.productId.image1,
-      category: item.productId.category,
-      quantity: item.quantity,
-    }));
-
-    return res.json({ cart: cartItems });
-  } catch (error) {
-    return res
-      .status(500)
-      .json({ message: "server error", error: error.message });
-  }
+  try { return res.json(await cartResponse(req.user)); }
+  catch { return res.status(500).json({ message: "Could not load cart" }); }
 };
 
-// Add a product to the logged-in user's cart (identified by x-user-id or body.userId)
-// If the product already exists in cart, increment quantity
-export const addToCart = async (req, res) => {
+async function changeQuantity(req, res, add) {
   try {
-    const user = req.user; // attached by attachUserById middleware
-    const { productId, quantity = 1 } = req.body;
-    if (!productId) {
-      return res.status(400).json({ message: "productId is required" });
+    const { productId, quantity = add ? 1 : undefined } = req.body ?? {};
+    if (!mongoose.isValidObjectId(productId) || typeof quantity !== "number" || !Number.isSafeInteger(quantity) || quantity < 1) {
+      return res.status(400).json({ message: "A valid product and positive whole quantity are required" });
     }
-    const qty = Math.max(1, Number(quantity) || 1);
-
-    const existing = user.cart.find(
-      (item) => String(item.productId) === String(productId)
-    );
-    if (existing) {
-      existing.quantity += qty;
-    } else {
-      user.cart.push({ productId, quantity: qty });
-    }
-
-    await user.save();
-
-    // Return updated cart with populated product details
-    const populatedUser = await User.findById(user._id).populate(
-      "cart.productId"
-    );
-    const cartItems = populatedUser.cart.map((item) => ({
-      id: item.productId._id,
-      productId: item.productId._id,
-      title: item.productId.title,
-      price: item.productId.price,
-      image1: item.productId.image1,
-      category: item.productId.category,
-      quantity: item.quantity,
-    }));
-
-    return res.json({ cart: cartItems });
-  } catch (error) {
-    return res
-      .status(500)
-      .json({ message: "server error", error: error.message });
-  }
-};
-
-// Update quantity for a product in the user's cart
-export const updateCartItem = async (req, res) => {
-  try {
-    const user = req.user;
-    const { productId, quantity } = req.body;
-    const qtyNum = Number(quantity);
-    if (!productId || !Number.isInteger(qtyNum) || qtyNum < 1) {
-      return res
-        .status(400)
-        .json({ message: "productId and positive quantity required" });
-    }
-    const item = user.cart.find(
-      (ci) => String(ci.productId) === String(productId)
-    );
-    if (!item) {
-      return res.status(404).json({ message: "Item not found in cart" });
-    }
-    item.quantity = qtyNum;
-    await user.save();
-
-    // Return updated cart with populated product details
-    const populatedUser = await User.findById(user._id).populate(
-      "cart.productId"
-    );
-    const cartItems = populatedUser.cart.map((item) => ({
-      id: item.productId._id,
-      productId: item.productId._id,
-      title: item.productId.title,
-      price: item.productId.price,
-      image1: item.productId.image1,
-      category: item.productId.category,
-      quantity: item.quantity,
-    }));
-
-    return res.json({ cart: cartItems });
-  } catch (error) {
-    return res
-      .status(500)
-      .json({ message: "server error", error: error.message });
-  }
-};
-
-// Remove a product from the user's cart
+    const product = await Product.findById(productId);
+    if (!product) return res.status(404).json({ message: "Product is no longer available" });
+    const item = req.user.cart.find((entry) => String(entry.productId) === String(productId));
+    if (!add && !item) return res.status(404).json({ message: "Item not found in cart" });
+    const total = add ? (item?.quantity || 0) + quantity : quantity;
+    if (!Number.isSafeInteger(total) || total > product.stock) return res.status(409).json({ message: `Only ${product.stock} available in stock` });
+    if (item) item.quantity = total;
+    else req.user.cart.push({ productId, quantity: total });
+    await req.user.save();
+    return res.json(await cartResponse(req.user));
+  } catch (error) { return res.status(error.name === "VersionError" ? 409 : 500).json({ message: "Could not update cart. Reload and retry." }); }
+}
+export const addToCart = (req, res) => changeQuantity(req, res, true);
+export const updateCartItem = (req, res) => changeQuantity(req, res, false);
 export const removeFromCart = async (req, res) => {
   try {
-    const user = req.user;
-    const { id } = req.params; // productId
-    const before = user.cart.length;
-    user.cart = user.cart.filter((ci) => String(ci.productId) !== String(id));
-    if (user.cart.length === before) {
-      return res.status(404).json({ message: "Item not found in cart" });
-    }
-    await user.save();
-
-    // Return updated cart with populated product details
-    const populatedUser = await User.findById(user._id).populate(
-      "cart.productId"
-    );
-    const cartItems = populatedUser.cart.map((item) => ({
-      id: item.productId._id,
-      productId: item.productId._id,
-      title: item.productId.title,
-      price: item.productId.price,
-      image1: item.productId.image1,
-      category: item.productId.category,
-      quantity: item.quantity,
-    }));
-
-    return res.json({ cart: cartItems });
-  } catch (error) {
-    return res
-      .status(500)
-      .json({ message: "server error", error: error.message });
-  }
+    req.user.cart = req.user.cart.filter((item) => String(item.productId) !== req.params.id);
+    await req.user.save();
+    return res.json(await cartResponse(req.user));
+  } catch { return res.status(500).json({ message: "Could not remove item" }); }
 };
-
-// Clear the persisted cart before the client removes its local copy.
-// The existing middleware attaches the user, so the body never chooses another account.
 export const clearCart = async (req, res) => {
   try {
     req.user.cart = [];
     await req.user.save();
     return res.json({ cart: [] });
-  } catch (error) {
-    return res.status(500).json({ message: "Failed to clear cart", error: error.message });
-  }
+  } catch { return res.status(500).json({ message: "Failed to clear cart" }); }
 };

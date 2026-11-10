@@ -1,3 +1,4 @@
+import { cmsUrl } from "../api/config";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import Carousel from "../components/Carousel";
@@ -29,7 +30,7 @@ export default function Home() {
     </section>
     <div className="benefit-strip"><span><b>01</b> Discover your next upgrade</span><span><b>02</b> Compare the details</span><span><b>03</b> Make it yours</span></div>
     <section className="collection-section"><div className="section-heading"><div><span className="eyebrow">Made for the way you live</span><h2>Find your kind of tech.</h2></div><p>Big ideas to everyday essentials.<br/>Start with what you love.</p></div><div className="category-grid">{categories.map(c => <Link className={`category-card ${c.type}`} to={c.path} key={c.path}><div className="category-card-top"><span>{c.label}</span><span className="circle-arrow">↗</span></div><Device type={c.type}/><div><h3>{c.name}</h3><p>{c.description}</p></div></Link>)}</div></section>
-    {sections.length > 0 && <section className="collection-section"><div className="section-heading"><h2>A little inspiration.</h2></div><div className="category-grid">{sections.map(item => <article className="editorial-card" key={item.id}>{item.Image?.[0] && <img loading="lazy" src={`http://localhost:1337${item.Image[0].formats?.small?.url || item.Image[0].url}`} alt={item.Image[0].alternativeText || item.Title}/>}<h3>{item.Title}</h3><p>{Array.isArray(item.Description) ? item.Description.map(b => b.children?.map(c => c.text).join("")).join(" ") : item.Description}</p></article>)}</div></section>}
+    {sections.length > 0 && <section className="collection-section"><div className="section-heading"><h2>A little inspiration.</h2></div><div className="category-grid">{sections.map(item => <article className="editorial-card" key={item.id}>{item.Image?.[0] && <img loading="lazy" src={cmsUrl(item.Image[0].formats?.small?.url || item.Image[0].url)} alt={item.Image[0].alternativeText || item.Title}/>}<h3>{item.Title}</h3><p>{Array.isArray(item.Description) ? item.Description.map(b => b.children?.map(c => c.text).join("")).join(" ") : item.Description}</p></article>)}</div></section>}
     <section className="explore-banner"><div><span className="eyebrow">Little things. Big difference.</span><h2>Complete your everyday.</h2><p>Meet the accessories that bring it all together.</p></div><Link className="primary-link" to="/accessories">Explore accessories ↗</Link></section>
   </div>;
 }

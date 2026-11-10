@@ -1,3 +1,4 @@
+import { apiFetch } from "../api/config";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import EditProductDialog from "../components/EditProductDialog";
@@ -43,7 +44,7 @@ const ProductMaintenance = () => {
     const fetchProducts = async () => {
       setLoading(true);
       try {
-        const res = await fetch("http://localhost:5001/api/admin/products", {
+        const res = await apiFetch("/api/admin/products", {
           headers: { Authorization: `Bearer ${adminToken}` },
         });
         const data = await res.json();
@@ -64,8 +65,8 @@ const ProductMaintenance = () => {
     setError("");
     setNotice("");
     try {
-      const res = await fetch(
-        `http://localhost:5001/api/admin/products/${deleteTarget._id}`,
+      const res = await apiFetch(
+        `/api/admin/products/${deleteTarget._id}`,
         {
           method: "DELETE",
           headers: { Authorization: `Bearer ${adminToken}` },
@@ -102,8 +103,8 @@ const ProductMaintenance = () => {
       return;
     }
     try {
-      const res = await fetch(
-        `http://localhost:5001/api/admin/products/${product._id}/reduce`,
+      const res = await apiFetch(
+        `/api/admin/products/${product._id}/reduce`,
         {
           method: "PATCH",
           headers: {

@@ -6,7 +6,9 @@
   "type": "module",
   "scripts": {
     "dev": "nodemon src/server.js",
-    "start": "node src/server.js"
+    "start": "node src/server.js",
+    "test": "node --test src/tests/*.test.js",
+    "audit:images": "node src/scripts/auditImages.js"
   },
   "keywords": [],
   "author": "",
