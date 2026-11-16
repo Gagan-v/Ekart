@@ -298,7 +298,7 @@ const AddCart = () => {
                   disabled={clearing}
                   className="w-full bg-orange-500 hover:bg-orange-600 text-white py-3 px-4 rounded-lg font-semibold transition-colors"
                 >
-                  Buy Now
+                  Proceed to Checkout
                 </button>
                 <button
                   onClick={() => navigate("/")}
@@ -323,7 +323,7 @@ const AddCart = () => {
                     />
                   </svg>
                   <span className="text-sm text-green-700 font-medium">
-                    Payment preview
+                    Checkout
                   </span>
                 </div>
                 <p className="text-xs text-green-600 mt-1">

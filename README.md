@@ -1,6 +1,6 @@
 # Ekart
 
-React/Vite storefront, Express/MongoDB API, and optional Strapi CMS. Checkout and payment remain placeholders.
+React/Vite storefront, Express/MongoDB API, and optional Strapi CMS. Checkout saves unpaid orders to the signed-in customer’s account; payment integration remains pending.
 
 ## Run locally
 
@@ -20,6 +20,12 @@ Open http://localhost:5173. Vite proxies `/api` to port 5001 and `/cms` to optio
 Customer authentication now uses a signed HttpOnly cookie. Existing cached user profiles do not grant access: sign in again after upgrading. Re-login as admin as well, because new admin tokens have an explicit admin role. Changing a password requires the current password and invalidates other sessions. Sign out invalidates customer sessions server-side.
 
 Create/reset an admin using `node src/scripts/createAdmin.js` from `packages/server` after setting `ADMIN_USERNAME` and `ADMIN_PASSWORD`. This resets that admin's password if it already exists.
+
+## Orders
+
+Signed-in customers can use Cart → Proceed to Checkout → Place order. A successful database save shows “Order successful”, clears the cart, and records item names, quantities, prices, total, and server date/time in the customer’s MongoDB user document. My orders is available from the account menu and account page; dates display in the browser’s local timezone. Prices come from the server, and saved item details remain available after catalog changes.
+
+Orders are placed with payment pending; no money is collected. Stock is checked at placement but unpaid orders do not reserve or deduct inventory. Inventory reservation, fulfillment, and payment reconciliation remain future work. Order creation and cart clearing share one version-checked document save to reject concurrent changes.
 
 ## Product images
 

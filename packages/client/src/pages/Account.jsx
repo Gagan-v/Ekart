@@ -8,7 +8,7 @@ import {
   Alert,
   Stack,
 } from "@mui/material";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 // Account Settings page
 // Shows current username and email. Allows updating username and password.
@@ -90,6 +90,7 @@ export default function Account() {
         <Typography variant="h5" className="mb-4 font-bold text-center">
           Account Settings
         </Typography>
+        <p><Link to="/orders">My orders</Link></p>
         {error && (
           <Alert severity="error" className="mb-4">
             {error}

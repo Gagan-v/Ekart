@@ -1,5 +1,6 @@
 import { Route, Routes } from "react-router-dom";
 import Payment from "../pages/Payment";
+import Orders from "../pages/Orders";
 import Products from "../pages/Products";
 import Home from "../pages/home";
 import Mobile from "../pages/mobile";
@@ -18,6 +19,7 @@ const AppRoutes = () => {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/payment" element={<Payment />} />
+        <Route path="/orders" element={<Orders />} />
         <Route path="/products" element={<Products />} />
         {/* Add more pages here */}
         {/* Simplified routes - direct category navigation */}

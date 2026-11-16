@@ -4,12 +4,11 @@ import { Link } from "react-router-dom";
 import Carousel from "../components/Carousel";
 import { fetchLandingSections } from "../api/strapi";
 
-// Each banner links to its matching collection. Carousel handles autoplay and navigation.
-const slides = [
-  { text: "Discover your next upgrade", heading: "Big possibilities. Everyday tech.", subheading: "Explore mobile phones made for your everyday.", bgColor: "#5145a5", to: "/mobile" },
-  { text: "Fresh perspectives", heading: "Bring your next big idea to life.", subheading: "Find a laptop for work, play, and everything in between.", bgColor: "#28566a", to: "/laptop" },
-  { text: "The everyday essentials", heading: "Small details. Big difference.", subheading: "Complete your setup with the right accessories.", bgColor: "#7c4664", to: "/accessories" },
-];
+function descriptionText(description) {
+  if (typeof description === "string") return description;
+  const text = node => typeof node.text === "string" ? node.text : (node.children || []).map(text).join("");
+  return Array.isArray(description) ? description.map(text).join(" ") : "";
+}
 
 const categories = [
   { name: "Mobile phones", path: "/mobile", label: "Stay connected", type: "phone", description: "Big possibilities. Pocket-sized." },
@@ -21,9 +20,24 @@ function Device({ type }) {
 }
 export default function Home() {
   const [sections, setSections] = useState([]);
-  useEffect(() => { let active = true; fetchLandingSections().then(data => { if (active) setSections(Array.isArray(data) ? data : []); }).catch(() => {}); return () => { active = false; }; }, []);
+  const [cmsLoading, setCmsLoading] = useState(true);
+  const [cmsError, setCmsError] = useState("");
+  useEffect(() => {
+    let active = true;
+    fetchLandingSections().then(data => {
+      if (active) setSections(Array.isArray(data) ? data : []);
+    }).catch(() => {
+      if (active) setCmsError("Featured content is temporarily unavailable.");
+    }).finally(() => { if (active) setCmsLoading(false); });
+    return () => { active = false; };
+  }, []);
+  const slides = sections.map(item => {
+    const image = Array.isArray(item.Image) ? item.Image[0] : item.Image;
+    return { heading: item.Title, subheading: descriptionText(item.Description),
+      image: image?.url ? cmsUrl(image.url) : undefined, bgColor: "#28566a", to: "/products" };
+  });
   return <div className="home-page">
-    <section className="home-carousel" aria-label="Featured collections"><Carousel slides={slides} autoplay interval={5000} /></section>
+    {cmsLoading ? <p role="status">Loading featured content…</p> : cmsError ? <p role="status">{cmsError}</p> : slides.length > 0 && <section className="home-carousel" aria-label="Featured collections"><Carousel slides={slides} autoplay interval={5000} /></section>}
     <section className="hero">
       <div className="hero-copy"><span className="eyebrow"><span/> A fresh take on everyday tech</span><h1>Good tech.<br/>Great possibilities<span>.</span></h1><p>Discover the phones, laptops, and little extras that make your everyday a little better.</p><div className="hero-actions"><Link className="primary-link" to="/mobile">Explore the collection <span>↗</span></Link><Link className="text-link" to="/laptop">Find your laptop →</Link></div><div className="hero-note"><span>✦</span> A new favorite is just a click away</div></div>
       <div className="hero-visual"><div className="orb"/><div className="hero-product"><Device type="phone"/></div><span className="floating-label top">Designed for your everyday</span><span className="floating-label bottom"><span>✦</span> Discover what’s next</span><span className="visual-caption">THE EVERYDAY EDIT / 01</span></div>

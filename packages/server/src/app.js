@@ -9,6 +9,7 @@ import adminRoutes from "./routes/adminRoutes.js";
 import productRoutes from "./routes/productsRoutes.js";
 import reviewRoutes from "./routes/reviewRoutes.js";
 import cartRoutes from "./routes/cartRoutes.js";
+import orderRoutes from "./routes/orderRoutes.js";
 import uploadRoutes from "./routes/uploadRoutes.js";
 import { allowedOrigins, checkOrigin, authLimiter } from "./middleware/requestPolicy.js";
 
@@ -30,6 +31,7 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/admin/products", productRoutes);
 app.use("/api/reviews", reviewRoutes);
 app.use("/api/cart", cartRoutes);
+app.use("/api/orders", orderRoutes);
 app.use("/api/admin/uploads", uploadRoutes);
 app.use((_req, res) => res.status(404).json({ message: "Endpoint not found" }));
 app.use((error, _req, res, _next) => {

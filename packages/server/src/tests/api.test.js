@@ -13,7 +13,7 @@ test("HTTP login, session isolation, profile, cart, admin upload and origin chec
   const oldSecret = process.env.JWT_SECRET;
   process.env.JWT_SECRET = "test-api-secret";
   t.after(() => { if (oldSecret === undefined) delete process.env.JWT_SECRET; else process.env.JWT_SECRET = oldSecret; });
-  const user = { _id: "507f1f77bcf86cd799439011", name: "Alice", email: "alice@example.com", password: "hash", cart: [], sessionVersion: 0, async save() {} };
+  const user = { _id: "507f1f77bcf86cd799439011", name: "Alice", email: "alice@example.com", password: "hash", cart: [], orders: [], sessionVersion: 0, async save() {} };
   const admin = { _id: "507f1f77bcf86cd799439012", username: "admin", password: "hash" };
   t.mock.method(User, "findOne", async () => user);
   t.mock.method(User, "findById", async (id) => String(id) === user._id ? user : null);
@@ -31,6 +31,10 @@ test("HTTP login, session isolation, profile, cart, admin upload and origin chec
 
   const spoof = await request("/api/cart", { headers: { "x-user-id": user._id } });
   assert.equal(spoof.status, 401);
+  for (const method of ["GET", "POST"]) {
+    const unauthorized = await request("/api/orders", { method, headers: { "x-user-id": user._id } });
+    assert.equal(unauthorized.status, 401);
+  }
   const updateSpoof = await request("/api/auth/update", { ...json({ userId: user._id, name: "Stolen" }), method: "PUT" });
   assert.equal(updateSpoof.status, 401);
   const login = await request("/api/auth/login", json({ username: user.name, password: "password" }));
@@ -46,6 +50,11 @@ test("HTTP login, session isolation, profile, cart, admin upload and origin chec
   const cart = await request("/api/cart", { headers: { Cookie: cookie } });
   assert.equal(cart.status, 200);
   assert.deepEqual((await cart.json()).cart, []);
+  const history = await request("/api/orders?userId=someone-else", { headers: { Cookie: cookie } });
+  assert.equal(history.status, 200);
+  assert.deepEqual((await history.json()).orders, []);
+  const emptyOrder = await request("/api/orders", { method: "POST", headers: { Cookie: cookie } });
+  assert.equal(emptyOrder.status, 400);
   const badOrigin = await request("/api/auth/update", { ...json({ name: "Attacker" }), method: "PUT", headers: { "Content-Type": "application/json", Cookie: cookie, Origin: "https://untrusted.example" } });
   assert.equal(badOrigin.status, 403);
   const noAdmin = await request("/api/admin/uploads/presign", { ...json({ contentType: "image/jpeg", size: 10 }), headers: { "Content-Type": "application/json", Cookie: cookie } });

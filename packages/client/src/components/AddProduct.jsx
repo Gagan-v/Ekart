@@ -1,7 +1,4 @@
-import { apiFetch } from "../api/config";
-import ProductImagePicker from "./ProductImagePicker";
-import { uploadProductImages } from "../utils/uploadProductImages";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   TextField,
@@ -14,6 +11,7 @@ import {
   Snackbar,
 } from "@mui/material";
 
+
 const AddProduct = () => {
   const navigate = useNavigate();
   const [category, setCategory] = useState("");
@@ -22,8 +20,7 @@ const AddProduct = () => {
   const [price, setPrice] = useState("");
   const [stock, setStock] = useState("");
   const [specs, setSpecs] = useState("•");
-  const [productImages, setProductImages] = useState([]);
-  const uploadCache = useRef(new Map());
+  const [image, setImage] = useState(null); // for file
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: "", text: "" });
   const [showSnackbar, setShowSnackbar] = useState(false);
@@ -37,7 +34,7 @@ const AddProduct = () => {
     }
     const fetchCount = async () => {
       try {
-        const res = await apiFetch("/api/admin/products/count", {
+        const res = await fetch("http://localhost:5001/api/products/count", {
           headers: { Authorization: `Bearer ${adminToken}` },
         });
         const data = await res.json();
@@ -55,6 +52,16 @@ const AddProduct = () => {
     navigate("/admin/login");
   };
 
+  // Function to convert image to base64
+  const convertImageToBase64 = (file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = (error) => reject(error);
+    });
+  };
+
   // Function to reset form
   const resetForm = () => {
     setCategory("");
@@ -62,8 +69,7 @@ const AddProduct = () => {
     setPrice("");
     setStock("");
     setSpecs("•");
-    setProductImages([]);
-    uploadCache.current.clear();
+    setImage(null);
   };
 
   // Function to show message
@@ -108,7 +114,7 @@ const AddProduct = () => {
     setLoading(true);
 
     try {
-      // Authenticate before preparing an image upload.
+      // Convert image to base64 if provided
       const adminToken = localStorage.getItem("adminToken");
 
       if (!adminToken) {
@@ -116,7 +122,49 @@ const AddProduct = () => {
         return;
       }
 
-      const imageKeys = await uploadProductImages(productImages, adminToken, uploadCache.current, category);
+      let imageUrl = "";
+      let imageKey = "";
+
+      if (image && category === "mobile") {
+  // Ask Express for permission to upload.
+      const response = await fetch(
+      "http://localhost:5001/api/admin/uploads/presign",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${adminToken}`,
+        },
+        body: JSON.stringify({
+        contentType: image.type,
+          }),
+        }
+      );
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || "Could not prepare upload");
+  }
+
+  // Upload the actual image directly to S3.
+  const uploadResponse = await fetch(data.uploadUrl, {
+    method: "PUT",
+    headers: {
+      "Content-Type": image.type,
+    },
+    body: image,
+  });
+
+  if (!uploadResponse.ok) {
+    throw new Error("Image upload failed");
+  }
+
+  imageKey = data.key;
+} else if (image) {
+  // Keep existing behavior for other categories for now.
+  imageUrl = await convertImageToBase64(image);
+}
 
       // Prepare the request body - now using only main category
       const productData = {
@@ -125,14 +173,13 @@ const AddProduct = () => {
         price: Number(price),
         stock: Number(stock),
         specs: specs.trim(),
-        imageUrl: "",
-        imageKey: imageKeys[0] || "",
-        imageKeys,
+        imageUrl,
+        imageKey,
       };
 
       // Make API call
-      const response = await apiFetch(
-        "/api/admin/products/add-product",
+      const response = await fetch(
+        "http://localhost:5001/api/admin/products/add-product",
         {
           method: "POST",
           headers: {
@@ -150,7 +197,7 @@ const AddProduct = () => {
         resetForm();
         // refresh count
         try {
-          const res2 = await apiFetch("/api/admin/products/count", {
+          const res2 = await fetch("http://localhost:5001/api/products/count", {
             headers: { Authorization: `Bearer ${adminToken}` },
           });
           const d2 = await res2.json();
@@ -163,7 +210,7 @@ const AddProduct = () => {
       }
     } catch (error) {
       console.error("Error adding product:", error);
-      showMessage("error", error.message || "Could not add product. Please try again.");
+      showMessage("error", "Network error. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -258,7 +305,14 @@ const AddProduct = () => {
           placeholder="Enter product specs..."
         />
 
-        <ProductImagePicker images={productImages} onChange={setProductImages} disabled={loading || !category} />
+        {/* Image Upload (temporary - later connect to S3) */}
+        <input
+          type="file"
+          accept="image/*"
+          aria-label="Product image"
+          onChange={(e) => setImage(e.target.files[0])}
+          style={{ margin: "20px 0" }}
+        />
 
         <Button
           type="submit"
