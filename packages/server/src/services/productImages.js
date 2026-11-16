@@ -85,11 +85,18 @@ export const withImageUrl = async (product) => {
     data.imageUrls = [...new Set([data.imageUrl, data.image1, data.image2, data.image3, data.image4].filter(Boolean))];
     return data;
   }
-  const { s3, bucket } = imageStorage();
   data.imageKeys = keys;
-  data.imageUrls = await Promise.all(keys.map((key) => getSignedUrl(
-    s3, new GetObjectCommand({ Bucket: bucket, Key: key }), { expiresIn: 3600 }
-  )));
+  try {
+    const { s3, bucket } = imageStorage();
+    data.imageUrls = await Promise.all(keys.map((key) => getSignedUrl(
+      s3, new GetObjectCommand({ Bucket: bucket, Key: key }), { expiresIn: 3600 }
+    )));
+  } catch (error) {
+    // An unavailable image provider must not hide the catalog or a user's cart.
+    // Never substitute public bucket URLs for private signed images.
+    console.warn("Product images unavailable; check backend AWS configuration", { code: error.name });
+    data.imageUrls = [];
+  }
   data.imageUrl = data.imageUrls[0] || "";
   // Keep existing cards and cart consumers compatible.
   for (let index = 0; index < 4; index++) data[`image${index + 1}`] = data.imageUrls[index] || "";
