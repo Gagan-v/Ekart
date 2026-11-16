@@ -1,7 +1,11 @@
+import { apiUrl } from "../api/config";
+import { apiFetch } from "../api/config";
 import { useSearchParams } from "react-router-dom";
+import ProductReviews from "../components/ProductReviews";
 import ProductFilters from "../components/ProductFilters";
+import ProductImageGallery from "../components/ProductImageGallery";
 import { filterProducts } from "../utils/filterProducts";
-import { Dialog, Snackbar, Alert } from "@mui/material";
+import { Dialog, Snackbar, Alert, Rating } from "@mui/material";
 import { useState, useEffect } from "react";
 
 import axios from "axios";
@@ -25,15 +29,16 @@ const Products = ({ category = "" }) => {
   const selectedProduct = productId
     ? products.find(product => product._id === productId) || null
     : clickedProduct;
-  const [selectedImage, setSelectedImage] = useState("image1");
+  const [reviewProduct, setReviewProduct] = useState(null);
   const [notice, setNotice] = useState("");
+
 
   useEffect(() => {
     const fetchProducts = async () => {
       try {
         setLoading(true);
         const response = await axios.get(
-          "http://localhost:5001/api/admin/products"
+          apiUrl("/api/admin/products")
         );
         setProducts(Array.isArray(response.data) ? response.data : []);
       } catch (err) {
@@ -57,16 +62,21 @@ const Products = ({ category = "" }) => {
       return;
     }
 
-    const user = JSON.parse(localStorage.getItem("authUser") || "null");
+    let user;
+    try {
+      const hadSession = Boolean(localStorage.getItem("authUser"));
+      const response = await apiFetch("/api/auth/me");
+      if (response.ok) user = await response.json();
+      else if (response.status !== 401 || hadSession) throw new Error("Please sign in again before adding to your cart.");
+    } catch (error) { alert(error.message || "Could not verify your session"); return; }
     const productId = product._id;
-    if (user?.id) {
+    if (user?._id) {
       // Logged in: persist to backend cart tied to this user
       try {
-        const res = await fetch("http://localhost:5001/api/cart/add", {
+        const res = await apiFetch("/api/cart/add", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "x-user-id": user.id, // session-like user identification; no JWT
           },
           body: JSON.stringify({ productId, quantity: 1 }),
         });
@@ -88,14 +98,16 @@ const Products = ({ category = "" }) => {
         const validCart = Array.isArray(existingCart) ? existingCart : [];
         const idx = validCart.findIndex((item) => item?.id === productId);
         if (idx >= 0) {
+          if ((validCart[idx].quantity || 1) >= product.stock) throw new Error("No more stock available");
           validCart[idx].quantity = (validCart[idx].quantity || 1) + 1;
         } else {
           validCart.push({
             id: productId,
             quantity: 1,
+            stock: product.stock,
             title: product.title || "Unknown Product",
             price: product.price || 0,
-            image1: product.image1 || "",
+            image1: product.imageUrls?.[0] || product.image1 || product.imageUrl || "",
             category: product.category || "mobile",
           });
         }
@@ -112,7 +124,6 @@ const Products = ({ category = "" }) => {
   // Handle product click to show detailed view
   const handleProductClick = (product) => {
     setSelectedProduct(product);
-    setSelectedImage("image1");
   };
 
   // Close product detail modal
@@ -124,42 +135,9 @@ const Products = ({ category = "" }) => {
       return next;
     }, { replace: true });
     setSelectedProduct(null);
-    setSelectedImage("image1");
   };
 
-  // Render star rating
-  const renderStars = (rating) => {
-    const stars = [];
-    const fullStars = Math.floor(rating);
-    const hasHalfStar = rating % 1 !== 0;
-
-    for (let i = 0; i < fullStars; i++) {
-      stars.push(
-        <span key={i} className="text-yellow-400">
-          ★
-        </span>
-      );
-    }
-
-    if (hasHalfStar) {
-      stars.push(
-        <span key="half" className="text-yellow-400">
-          ☆
-        </span>
-      );
-    }
-
-    const emptyStars = 5 - Math.ceil(rating);
-    for (let i = 0; i < emptyStars; i++) {
-      stars.push(
-        <span key={`empty-${i}`} className="text-gray-300">
-          ★
-        </span>
-      );
-    }
-
-    return stars;
-  };
+  const renderStars = rating => <Rating value={rating || 0} precision={0.1} readOnly size="small" />;
 
   if (loading) {
     return (
@@ -228,23 +206,7 @@ const Products = ({ category = "" }) => {
                 onKeyDown={(event) => { if (event.target === event.currentTarget && (event.key === "Enter" || event.key === " ")) { event.preventDefault(); handleProductClick(product); } }}
                 onClick={() => handleProductClick(product)}
               >
-                {/* Product Image */}
-                <div className="aspect-w-16 aspect-h-12 bg-gray-200 flex items-center justify-center">
-                  {product.image1 || product.imageUrl ? (
-                    <img
-                      src={product.image1 || product.imageUrl}
-                      alt={product.title}
-                      className="w-full h-48 object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-48 bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
-                      <div className="text-center">
-                        <div className="text-4xl text-gray-400 mb-2">📱</div>
-                        <p className="text-gray-500 text-sm">image1</p>
-                      </div>
-                    </div>
-                  )}
-                </div>
+                <ProductImageGallery key={product._id} product={product} compact />
 
                 {/* Product Details */}
                 <div className="p-6">
@@ -253,16 +215,15 @@ const Products = ({ category = "" }) => {
                   </h3>
 
                   {/* Rating */}
-                  {product.averageRating > 0 && (
-                    <div className="flex items-center mb-3">
+                  <button type="button" className="product-review-button flex items-center mb-3" aria-label={`Read reviews for ${product.title}`} onClick={event => { event.stopPropagation(); setReviewProduct(product); }}>
                       <div className="flex items-center">
                         {renderStars(product.averageRating)}
                       </div>
                       <span className="ml-2 text-sm text-gray-600">
-                        ({product.reviewCount} reviews)
+                        {(product.averageRating || 0).toFixed(1)}/5 ({product.reviewCount || 0} {product.reviewCount === 1 ? "rating" : "ratings"})
                       </span>
-                    </div>
-                  )}
+                      <span className="review-link-label">Read reviews</span>
+                  </button>
 
                   {/* Specifications */}
                   {product.specs && product.specs.length > 0 && (
@@ -290,7 +251,7 @@ const Products = ({ category = "" }) => {
                   <div className="flex items-center justify-between mb-4">
                     <div>
                       <span className="text-2xl font-bold text-green-600">
-                        ₹{product.price.toLocaleString()}
+                        ${product.price.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </span>
                     </div>
                     <div className="text-sm text-gray-500">
@@ -342,70 +303,7 @@ const Products = ({ category = "" }) => {
                 </button>
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                  {/* Left Side - Product Images */}
-                  <div>
-                    {/* Main Product Image */}
-                    <div className="mb-4">
-                      <div className="aspect-w-1 aspect-h-1 bg-gray-200 rounded-lg overflow-hidden">
-                        {selectedProduct[selectedImage] ||
-                        selectedProduct.imageUrl ? (
-                          <img
-                            src={
-                              selectedProduct[selectedImage] ||
-                              selectedProduct.imageUrl
-                            }
-                            alt={selectedImage}
-                            className="w-full h-96 object-cover"
-                          />
-                        ) : (
-                          <div className="w-full h-96 bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
-                            <div className="text-center">
-                              <div className="text-6xl text-gray-400 mb-2">
-                                📱
-                              </div>
-                              <p className="text-gray-500">{selectedImage}</p>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Thumbnail Images */}
-                    <div className="grid grid-cols-3 gap-2">
-                      {["image1", "image2", "image3", "image4"].map(
-                        (imageKey) => (
-                          <button
-                            key={imageKey}
-                            onClick={() => setSelectedImage(imageKey)}
-                            className={`aspect-w-1 aspect-h-1 rounded-lg overflow-hidden border-2 ${
-                              selectedImage === imageKey
-                                ? "border-blue-500"
-                                : "border-gray-200"
-                            }`}
-                          >
-                            {selectedProduct[imageKey] ? (
-                              <img
-                                src={selectedProduct[imageKey]}
-                                alt={imageKey}
-                                className="w-full h-20 object-cover"
-                              />
-                            ) : (
-                              <div className="w-full h-20 bg-gray-200 flex items-center justify-center">
-                                <div className="text-center">
-                                  <div className="text-2xl text-gray-400">
-                                    📱
-                                  </div>
-                                  <p className="text-xs text-gray-500">
-                                    {imageKey}
-                                  </p>
-                                </div>
-                              </div>
-                            )}
-                          </button>
-                        )
-                      )}
-                    </div>
-                  </div>
+                  <ProductImageGallery key={selectedProduct._id} product={selectedProduct} />
 
                   {/* Right Side - Product Details */}
                   <div>
@@ -423,12 +321,10 @@ const Products = ({ category = "" }) => {
                           {selectedProduct.averageRating || 0}/5
                         </span>
                         <span className="ml-2 text-gray-600">
-                          ({selectedProduct.reviewCount || 0} reviews)
+                          ({selectedProduct.reviewCount || 0} {selectedProduct.reviewCount === 1 ? "rating" : "ratings"})
                         </span>
                       </div>
-                      <p className="text-sm text-gray-600">
-                        Be the first to review this product!
-                      </p>
+                      <button type="button" className="review-link-label" onClick={() => setReviewProduct(selectedProduct)}>Read customer reviews</button>
                     </div>
 
                     {/* Specifications */}
@@ -454,7 +350,7 @@ const Products = ({ category = "" }) => {
                     {/* Price */}
                     <div className="mb-6">
                       <span className="text-4xl font-bold text-green-600">
-                        ₹{selectedProduct.price.toLocaleString()}
+                        ${selectedProduct.price.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </span>
                       <p className="text-sm text-gray-600 mt-1">
                         {selectedProduct.stock > 0 ? (
@@ -490,6 +386,7 @@ const Products = ({ category = "" }) => {
             </div>
           </Dialog>
         )}
+        {reviewProduct && <ProductReviews key={reviewProduct._id} product={reviewProduct} onClose={() => setReviewProduct(null)} />}
         <Snackbar open={Boolean(notice)} autoHideDuration={3500} onClose={() => setNotice("")} anchorOrigin={{ vertical: "bottom", horizontal: "center" }}><Alert severity="success" onClose={() => setNotice("")}>{notice}</Alert></Snackbar>
       </div>
     </div>

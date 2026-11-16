@@ -1,3 +1,4 @@
+import { apiFetch } from "../api/config";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Autocomplete, CircularProgress, TextField } from "@mui/material";
@@ -15,7 +16,7 @@ export default function ProductSearch() {
   useEffect(() => {
     // Cancel the request if the header unmounts (also handles React Strict Mode).
     const controller = new AbortController();
-    fetch("http://localhost:5001/api/admin/products", { signal: controller.signal })
+    apiFetch("/api/admin/products", { signal: controller.signal })
       .then(response => {
         if (!response.ok) throw new Error("Unable to load search suggestions");
         return response.json();
@@ -53,7 +54,7 @@ export default function ProductSearch() {
         <div className="search-suggestion">
           {product.image1 || product.imageUrl ? <img src={product.image1 || product.imageUrl} alt=""/> : <span className="suggestion-placeholder" aria-hidden="true">◇</span>}
           <div><strong>{product.title}</strong><span>{product.category === "laptop" ? "Laptop" : product.category === "mobile" ? "Mobile" : "Accessories"}</span></div>
-          <b>₹{Number(product.price || 0).toLocaleString("en-IN")}</b>
+          <b>${Number(product.price || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</b>
         </div>
       </li>;
     }}

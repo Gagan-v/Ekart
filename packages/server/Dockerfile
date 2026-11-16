@@ -1,27 +1,11 @@
-# Stage 1: Build Node server
-FROM node:20-alpine
-
+FROM node:22-alpine
 WORKDIR /app
-
-# Enable pnpm
-RUN corepack enable && corepack prepare pnpm@8.10.2 --activate
-
-# Copy root workspace files
+RUN corepack enable && corepack prepare pnpm@9.15.9 --activate
 COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
-
-# Copy server package.json
-COPY packages/server/package.json ./packages/server/
-
-# Install dependencies
-RUN pnpm install --no-frozen-lockfile
-
-# Copy server code
+COPY packages/server/package.json ./packages/server/package.json
+RUN pnpm install --frozen-lockfile --filter server...
 COPY packages/server ./packages/server
-
 WORKDIR /app/packages/server
-
-# Expose port
-EXPOSE 5000
-
-# Run server
-CMD ["pnpm", "dev"]
+ENV NODE_ENV=production
+EXPOSE 5001
+CMD ["pnpm", "start"]

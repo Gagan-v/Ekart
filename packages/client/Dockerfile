@@ -1,10 +1,10 @@
 # Stage 1: Build React app (Vite)
-FROM node:20-alpine AS builder
+FROM node:22-alpine AS builder
 
 WORKDIR /app
 
 # Enable pnpm
-RUN corepack enable && corepack prepare pnpm@8.10.2 --activate
+RUN corepack enable && corepack prepare pnpm@9.15.9 --activate
 
 # Copy root workspace files
 COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
@@ -13,7 +13,7 @@ COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
 COPY packages ./packages
 
 # Install dependencies (workspace-aware)
-RUN pnpm install --no-frozen-lockfile
+RUN pnpm install --frozen-lockfile --filter client...
 
 # Build client package
 RUN pnpm --filter client build

@@ -1,107 +1,56 @@
-// User authentication controller (no JWT). Users authenticate with username+password.
-// Session is kept client-side via localStorage; server identifies requests by userId.
 import User from "../model/User.js";
 import bcrypt from "bcryptjs";
-
-// Controller that registers a user: validates input, hashes password, saves user
-// Learning note: We deliberately do NOT return a JWT for users. We'll use client-side localStorage
-// to keep the minimal session state (user profile + cart) and identify requests by userId.
-export const registerUser = async (req, res) => {
+import { setSession, clearSession, publicUser } from "../services/customerSession.js";
+const validPassword = (password) => typeof password === "string" && password.length >= 8 && Buffer.byteLength(password) <= 72;
+const validName = (name) => typeof name === "string" && name.trim().length >= 2 && name.trim().length <= 80;
+function failure(res, error) {
+  if (error.code === 11000) return res.status(409).json({ message: "Username or email already exists" });
+  if (error.name === "ValidationError") return res.status(400).json({ message: "Invalid account details" });
+  return res.status(500).json({ message: "Could not complete account request" });
+}
+export async function registerUser(req, res) {
   try {
-    const { name, email, password } = req.body; // name is used as username for login
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return res.status(400).json({ message: "user exists" });
+    const { name, email, password } = req.body ?? {};
+    if (!validName(name) || typeof email !== "string" || !/^\S+@\S+\.\S+$/.test(email.trim()) || !validPassword(password)) {
+      return res.status(400).json({ message: "Enter a username (2–80 characters), valid email, and password (8 characters minimum, 72 bytes maximum)" });
     }
-
-    // Hash password using bcrypt before saving
-    const salt = await bcrypt.genSalt(5); //number of processing bcrypt does
-    const harshedPassword = await bcrypt.hash(password, salt);
-
-    //create user
-    const user = await User.create({
-      name,
-      email,
-      password: harshedPassword,
-    });
-
-    res.status(201).json({
-      _id: user._id,
-      name: user.name,
-      email: user.email,
-      cart: user.cart || [],
-    });
-  } catch (error) {
-    res.status(500).json({ message: "server error", error: error.message });
-  }
-};
-
-// Controller that logs in a user: verifies username/password, returns user profile (no JWT)
-// Learning note: Using bcrypt.compare ensures we never store or compare plaintext passwords.
-export const loginUser = async (req, res) => {
+    const normalizedEmail = email.trim().toLowerCase();
+    if (await User.findOne({ $or: [{ name: name.trim() }, { email: normalizedEmail }] })) return res.status(409).json({ message: "Username or email already exists" });
+    const user = await User.create({ name: name.trim(), email: normalizedEmail, password: await bcrypt.hash(password, 12) });
+    return res.status(201).json(publicUser(user));
+  } catch (error) { return failure(res, error); }
+}
+export async function loginUser(req, res) {
   try {
-    const { username, password } = req.body;
-    // Find user by username (stored as name)
-    const user = await User.findOne({ name: username });
-    if (!user) {
-      // Return 401 to indicate unauthorized access
-      return res.status(401).json({ message: "Invalid credentials" });
-    }
-    // Verify password using bcrypt.compare
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
-      return res.status(401).json({ message: "Invalid credentials" });
-    }
-    // Success: return user profile along with cart; frontend will store in localStorage
-    res.json({
-      _id: user._id,
-      name: user.name,
-      email: user.email,
-      cart: user.cart || [],
-    });
-  } catch (error) {
-    res.status(500).json({ message: "server error", error: error.message });
-  }
-};
-
-// Update user profile: allow updating username (name) and password only.
-// Frontend sends userId, name (optional), password (optional).
-export const updateUser = async (req, res) => {
+    const { username, password } = req.body ?? {};
+    if (typeof username !== "string" || typeof password !== "string" || !username.trim() || Buffer.byteLength(password) > 72) return res.status(400).json({ message: "Enter your username and password" });
+    const user = await User.findOne({ name: username.trim() });
+    if (!user || !(await bcrypt.compare(password, user.password))) return res.status(401).json({ message: "Invalid credentials" });
+    setSession(res, user);
+    return res.json(publicUser(user));
+  } catch (error) { return failure(res, error); }
+}
+export async function updateUser(req, res) {
   try {
-    const { userId, name, password } = req.body;
-    if (!userId) {
-      return res.status(400).json({ message: "userId is required" });
+    const user = req.user;
+    const { name, password, currentPassword } = req.body ?? {};
+    if (name !== undefined && !validName(name)) return res.status(400).json({ message: "Username must contain 2–80 characters" });
+    if (name !== undefined && name.trim() !== user.name && await User.findOne({ name: name.trim(), _id: { $ne: user._id } })) return res.status(409).json({ message: "Username already exists" });
+    if (password !== undefined) {
+      if (!validPassword(password)) return res.status(400).json({ message: "New password must have at least 8 characters and at most 72 bytes" });
+      if (typeof currentPassword !== "string" || !(await bcrypt.compare(currentPassword, user.password))) return res.status(403).json({ message: "Current password is incorrect" });
+      user.password = await bcrypt.hash(password, 12);
+      user.sessionVersion = (user.sessionVersion || 0) + 1;
     }
-
-    const user = await User.findById(userId);
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
-
-    // Update username if provided
-    if (typeof name === "string" && name.trim()) {
-      user.name = name.trim();
-    }
-
-    // Update password if provided
-    if (typeof password === "string" && password.trim()) {
-      const salt = await bcrypt.genSalt(5);
-      user.password = await bcrypt.hash(password.trim(), salt);
-    }
-
+    if (name !== undefined) user.name = name.trim();
     await user.save();
-
-    // Return updated user profile; no password, no JWT
-    // Learning note: password hashing happens above when changed; email remains read-only here.
-    return res.json({
-      _id: user._id,
-      name: user.name,
-      email: user.email,
-      cart: user.cart || [],
-    });
-  } catch (error) {
-    return res
-      .status(500)
-      .json({ message: "server error", error: error.message });
-  }
-};
+    setSession(res, user);
+    return res.json(publicUser(user));
+  } catch (error) { return failure(res, error); }
+}
+export const getMe = (req, res) => res.json(publicUser(req.user));
+export async function logoutUser(req, res) {
+  await User.updateOne({ _id: req.user._id }, { $inc: { sessionVersion: 1 } });
+  clearSession(res);
+  return res.json({ message: "Signed out" });
+}

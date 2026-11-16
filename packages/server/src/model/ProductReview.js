@@ -20,7 +20,7 @@ const productReviewSchema = new mongoose.Schema(
     },
     comment: {
       type: String,
-      required: true,
+      default: "",
       trim: true,
       maxLength: 500,
     },

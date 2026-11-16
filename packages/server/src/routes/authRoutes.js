@@ -3,7 +3,11 @@ import {
   registerUser,
   loginUser,
   updateUser,
+  getMe,
+  logoutUser,
 } from "../controllers/authController.js";
+
+import { customerAuth } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
@@ -15,8 +19,10 @@ router.post("/register", registerUser);
 // @route POST /api/auth/login
 router.post("/login", loginUser);
 
-// Update user profile (username/password). No JWT, identified by body.userId
+// Update user profile (username/password). Verified customer session required
 // @route PUT /api/auth/update
-router.put("/update", updateUser);
+router.put("/update", customerAuth, updateUser);
+router.get("/me", customerAuth, getMe);
+router.post("/logout", customerAuth, logoutUser);
 
 export default router;

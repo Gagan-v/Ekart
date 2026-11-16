@@ -1,3 +1,4 @@
+import { apiFetch, setCustomer } from "../api/config";
 import ProductSearch from "./ProductSearch";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
@@ -74,8 +75,11 @@ export default function Navbar() {
       }
     };
 
-    // Initial load
-    updateAuthState();
+    // Verify the cookie before treating cached profile data as a login.
+    apiFetch("/api/auth/me").then(async (response) => {
+      if (response.ok) setCustomer(await response.json());
+      else if (response.status === 401) { setIsLoggedIn(false); setUserName(""); }
+    }).catch(() => { setIsLoggedIn(false); });
 
     // Listen for storage changes from other tabs
     const onStorage = () => {
@@ -104,7 +108,12 @@ export default function Navbar() {
     };
   }, []);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      const response = await apiFetch("/api/auth/logout", { method: "POST" });
+      if (!response.ok && response.status !== 401) throw new Error("Could not sign out");
+    } catch { alert("Could not sign out. Check your connection and retry."); return; }
+
     localStorage.removeItem("authUser");
     // Keep cart in DB, but clear local copy when logging out
     localStorage.removeItem("cart");
@@ -143,7 +152,7 @@ export default function Navbar() {
       <ProductSearch />
       <div className="header-actions">
         <IconButton component={Link} to="/cart" aria-label={`Shopping cart, ${cartItemCount} items`}><Badge badgeContent={cartItemCount} color="primary"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><path d="M3 3h2l3 12h11l2-8H6M9 20h.01M18 20h.01" strokeLinecap="round" strokeLinejoin="round"/></svg></Badge></IconButton>
-        {isLoggedIn ? <><IconButton onClick={handleProfileClick} aria-label="Account menu" aria-haspopup="menu" aria-expanded={Boolean(anchorEl)}><AccountCircleIcon /></IconButton><Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleMenuClose}><MenuItem disabled><ListItemText primary={userName} /></MenuItem><MenuItem onClick={handleAccountClick}>My account</MenuItem><MenuItem onClick={handleLogout}>Sign out</MenuItem></Menu></> : <Link className="sign-in" to="/login">Sign in <span aria-hidden="true">↗</span></Link>}
+        {isLoggedIn ? <><IconButton onClick={handleProfileClick} aria-label="Account menu" aria-haspopup="menu" aria-expanded={Boolean(anchorEl)}><AccountCircleIcon /></IconButton><Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleMenuClose}><MenuItem disabled><ListItemText primary={userName} /></MenuItem><MenuItem onClick={handleAccountClick}>My account</MenuItem><MenuItem onClick={() => { navigate("/orders"); handleMenuClose(); }}>My orders</MenuItem><MenuItem onClick={handleLogout}>Sign out</MenuItem></Menu></> : <Link className="sign-in" to="/login">Sign in <span aria-hidden="true">↗</span></Link>}
       </div>
     </div>
     <nav className="category-nav" aria-label="Shop categories"><NavLink to="/" end>Discover</NavLink><NavLink to="/products">All products</NavLink><NavLink to="/mobile">Mobile phones</NavLink><NavLink to="/laptop">Laptops</NavLink><NavLink to="/accessories">Accessories</NavLink><span>Find your next favorite.</span></nav>

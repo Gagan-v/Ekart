@@ -14,6 +14,11 @@ const productSchema = new mongoose.Schema(
     stock: { type: Number, required: true, min: 0, default: 0 },
     specs: { type: [String], default: [] }, // store each bullet/line as array item
     imageUrl: { type: String, default: "" }, // will hold S3 URL later
+    imageKey: { type: String, default: "" },
+    imageKeys: {
+      type: [String], default: [],
+      validate: { validator: (keys) => keys.length <= 4, message: "Use at most four product images" },
+    },
     // Image fields for multiple product images
     image1: { type: String, default: "" }, // Main product image
     image2: { type: String, default: "" }, // Thumbnail image 1

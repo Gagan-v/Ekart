@@ -1,3 +1,5 @@
+import { setCustomer } from "../api/config";
+import { apiFetch } from "../api/config";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
@@ -24,8 +26,8 @@ export default function UserLogin() {
     setSuccess("");
     setLoading(true);
     try {
-      // Send username+password to backend; backend returns user profile (no JWT)
-      const res = await fetch("http://localhost:5001/api/auth/login", {
+      // The backend sets an HttpOnly session cookie.
+      const res = await apiFetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password }),
@@ -34,28 +36,8 @@ export default function UserLogin() {
       if (!res.ok) {
         throw new Error(data?.message || "Login failed");
       }
-      // Save basic user info and cart in localStorage (no JWT)
-      // Learning note: We removed JWT for users, so localStorage is our lightweight session store.
-      localStorage.setItem(
-        "authUser",
-        JSON.stringify({ id: data._id, name: data.name, email: data.email })
-      );
-      localStorage.setItem("cart", JSON.stringify(data.cart || []));
-      // Explain: We removed JWT for users; we keep session-like state in localStorage.
-
-      // Dispatch custom event to notify navbar of login state change
-      window.dispatchEvent(
-        new CustomEvent("authStateChanged", {
-          detail: {
-            isLoggedIn: true,
-            user: { id: data._id, name: data.name, email: data.email },
-          },
-        })
-      );
-
-      // Dispatch custom event to notify navbar of cart update
-      window.dispatchEvent(new CustomEvent("cartUpdated"));
-
+      localStorage.removeItem("cart");
+      setCustomer(data);
       setSuccess("Logged in successfully");
       setTimeout(() => navigate("/"), 800);
     } catch (err) {
