@@ -1,39 +1,36 @@
-version: "3.8"
-
 services:
-  # -------------------------------
-  # MongoDB for server
-  # -------------------------------
+  # Optional, separate database for a fully containerized development environment.
+  # The default uses your existing MongoDB on this Mac, preserving its data.
   mongodb:
     image: mongo:7
-    container_name: ekart-mongo
+    profiles: [database]
     ports:
-      - "127.0.0.1:27017:27017"
+      - "127.0.0.1:27018:27017"
     volumes:
-      - ./data/mongo:/data/db
- # persists database on host (./data/mongo) so data isn’t lost when container stops.
- 
-  # -------------------------------
-  # Strapi CMS
-  # -------------------------------
+      - mongo_dev_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
   strapi:
     build:
       context: .
       dockerfile: packages/strapi/Dockerfile
     ports:
-      - "1337:1337"
-    depends_on:
-      - mongodb
+      - "127.0.0.1:1337:1337"
     env_file:
       - ./packages/strapi/.env
+    environment:
+      HOST: 0.0.0.0
+      PORT: 1337
     volumes:
+      # Includes the existing SQLite database (.tmp) and uploaded CMS images.
       - ./packages/strapi:/app/packages/strapi
       - strapi_node_modules:/app/packages/strapi/node_modules
-      - ./packages/strapi/public/uploads:/app/packages/strapi/public/uploads
+      - strapi_admin_cache:/app/packages/strapi/.strapi
 
-  # -------------------------------
-  # Server (Node/Express)
-  # -------------------------------
   server:
     command: pnpm dev
     env_file:
@@ -42,40 +39,34 @@ services:
       context: .
       dockerfile: packages/server/Dockerfile
     ports:
-      - "5001:5001"
-    depends_on:
-      - mongodb
+      - "127.0.0.1:5001:5001"
     environment:
       NODE_ENV: development
       PORT: 5001
-      MONGO_URI: mongodb://mongodb:27017/ekart
+      MONGO_URI: ${DOCKER_MONGO_URI:-mongodb://host.docker.internal:27017/Ekart}
     volumes:
       - ./packages/server:/app/packages/server
       - server_node_modules:/app/packages/server/node_modules
 
-  # -------------------------------
-  # Client (React/Next with Nginx)
-  # -------------------------------
   client:
     build:
       context: .
       dockerfile: packages/client/Dockerfile.dev
     ports:
-      - "5173:5173"
+      - "127.0.0.1:5173:5173"
     environment:
       API_PROXY_TARGET: http://server:5001
       CMS_PROXY_TARGET: http://strapi:1337
     depends_on:
       - server
+      - strapi
     volumes:
       - ./packages/client:/app/packages/client
       - client_node_modules:/app/packages/client/node_modules
 
-# -------------------------------
-# Named volumes
-# -------------------------------
 volumes:
+  mongo_dev_data:
   strapi_node_modules:
+  strapi_admin_cache:
   server_node_modules:
-
   client_node_modules:

@@ -1,26 +1,17 @@
-FROM node:20-alpine
+FROM node:22-bookworm-slim
 
 WORKDIR /app
 
-# Enable pnpm
-RUN corepack enable && corepack prepare pnpm@8.10.2 --activate
+# Native SQLite dependencies may need compilation when a prebuilt binary is unavailable.
+RUN apt-get update && apt-get install -y --no-install-recommends python3 make g++ \
+    && rm -rf /var/lib/apt/lists/*
+RUN corepack enable && corepack prepare pnpm@9.15.9 --activate
 
-# Copy root workspace files
 COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
+COPY packages/strapi/package.json ./packages/strapi/package.json
+RUN pnpm install --frozen-lockfile --filter strapi...
 
-# Copy strapi package.json
-COPY packages/strapi/package.json ./packages/strapi/
-
-# Install dependencies
-RUN pnpm install --no-frozen-lockfile
-
-# Copy strapi project
 COPY packages/strapi ./packages/strapi
-
 WORKDIR /app/packages/strapi
-
-# Expose port
 EXPOSE 1337
-
-# Run Strapi
 CMD ["pnpm", "dev"]

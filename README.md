@@ -59,7 +59,29 @@ Tests use mocked database/AWS operations. The HTTP integration test starts an ep
 
 The default frontend uses same-origin `/api` requests. Production Nginx proxies to server:5001; no browser URL is hardcoded. `VITE_API_URL` and `VITE_CMS_URL` may override origins at build time, but customer cookies require a same-site HTTPS deployment. Keep the default proxy unless you specifically need separate hosts.
 
-For Docker development: `docker compose -f docker-compose.dev.yml up --build`. The optional Strapi service needs its own environment configuration; it can be omitted by starting only `mongodb server client`.
+For Docker development, open Docker Desktop, stop any manually started frontend/API/Strapi processes, and keep your existing local MongoDB running. From the repository root:
+
+```sh
+docker compose -f docker-compose.dev.yml up --build
+```
+
+Open http://localhost:5173 and http://localhost:1337/admin. All app images use Node 22 and pnpm 9.15.9. The development API connects to `mongodb://host.docker.internal:27017/Ekart`, matching the existing local database (the capital E matters). Server and Strapi secrets come from their local `.env` files. Strapi's existing SQLite database and uploads remain in the bind-mounted project directory; do not run native Strapi and container Strapi simultaneously. The source mounts support development edits; rebuild after dependency or Dockerfile changes. To omit CMS, start `server client` with `--no-deps`.
+
+Useful commands:
+
+```sh
+docker compose -f docker-compose.dev.yml ps
+docker compose -f docker-compose.dev.yml logs -f
+docker compose -f docker-compose.dev.yml down
+```
+
+To use a different MongoDB connection, set `DOCKER_MONGO_URI` in the terminal running Compose. An optional, separate MongoDB container uses a named volume and host port 27018:
+
+```sh
+DOCKER_MONGO_URI=mongodb://mongodb:27017/Ekart docker compose -f docker-compose.dev.yml --profile database up --build
+```
+
+That database starts empty; existing local records are not migrated automatically. Do not use `down --volumes` unless you intend to delete the Docker-managed data. This development setup uses Docker Desktop's `host.docker.internal` name for the existing host database.
 
 For production, configure `packages/server/.env` with:
 
