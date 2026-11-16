@@ -282,7 +282,7 @@ const Products = ({ category = "" }) => {
                   <div className="flex items-center justify-between mb-4">
                     <div>
                       <span className="text-2xl font-bold text-green-600">
-                        ₹{product.price.toLocaleString()}
+                        ${product.price.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </span>
                     </div>
                     <div className="text-sm text-gray-500">
@@ -383,7 +383,7 @@ const Products = ({ category = "" }) => {
                     {/* Price */}
                     <div className="mb-6">
                       <span className="text-4xl font-bold text-green-600">
-                        ₹{selectedProduct.price.toLocaleString()}
+                        ${selectedProduct.price.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </span>
                       <p className="text-sm text-gray-600 mt-1">
                         {selectedProduct.stock > 0 ? (

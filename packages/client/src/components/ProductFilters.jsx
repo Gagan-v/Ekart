@@ -6,8 +6,8 @@ export default function ProductFilters({ filters, onChange, onReset, count, tota
     <form className="filter-form" role="search" onSubmit={event => event.preventDefault()}>
       <label className="filter-search">Search products<input type="search" name="q" placeholder="Search by name or features…" value={filters.q} onChange={update}/></label>
       <label>Category<select name="category" value={filters.category} onChange={update} disabled={categoryLocked}><option value="">All categories</option><option value="mobile">Mobile phones</option><option value="laptop">Laptops</option><option value="accessories">Accessories</option></select></label>
-      <label>Min price (₹)<input type="number" name="min" min="0" step="any" placeholder="0" value={filters.min} onChange={update} aria-invalid={invalidRange} aria-describedby={invalidRange ? "price-error" : undefined}/></label>
-      <label>Max price (₹)<input type="number" name="max" min="0" step="any" placeholder="Any price" value={filters.max} onChange={update} aria-invalid={invalidRange} aria-describedby={invalidRange ? "price-error" : undefined}/></label>
+      <label>Min price ($)<input type="number" name="min" min="0" step="any" placeholder="0" value={filters.min} onChange={update} aria-invalid={invalidRange} aria-describedby={invalidRange ? "price-error" : undefined}/></label>
+      <label>Max price ($)<input type="number" name="max" min="0" step="any" placeholder="Any price" value={filters.max} onChange={update} aria-invalid={invalidRange} aria-describedby={invalidRange ? "price-error" : undefined}/></label>
       <label>Sort by<select name="sort" value={filters.sort} onChange={update}><option value="">Recommended</option><option value="price-asc">Price: low to high</option><option value="price-desc">Price: high to low</option><option value="rating">Top rated</option><option value="name">Name: A–Z</option></select></label>
       <div className="filter-bottom"><label className="stock-filter"><input type="checkbox" name="inStock" checked={filters.inStock} onChange={update}/> In stock only</label><button type="button" onClick={onReset}>Clear filters</button></div>
     </form>

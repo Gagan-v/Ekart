@@ -5,10 +5,10 @@ import { apiFetch } from "../api/config";
 export function OrderDetails({ order }) {
   return <article className="payment-placeholder" style={{ padding: "1.5rem", marginBottom: "1rem" }}>
     <h2>Order #{order._id}</h2>
-    <p><time dateTime={order.createdAt}>{new Date(order.createdAt).toLocaleString()}</time></p>
+    <p><time dateTime={order.createdAt}>{new Date(order.createdAt).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</time></p>
     <p>Order placed · Payment pending</p>
-    <ul>{order.items.map(item => <li key={item.productId}>{item.title} — {item.quantity} × ₹{item.price.toLocaleString("en-IN")} = ₹{(item.price * item.quantity).toLocaleString("en-IN")}</li>)}</ul>
-    <p><strong>Total: ₹{order.total.toLocaleString("en-IN")}</strong></p>
+    <ul>{order.items.map(item => <li key={item.productId}>{item.title} — {item.quantity} × ${item.price.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} = ${(item.price * item.quantity).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</li>)}</ul>
+    <p><strong>Total: ${order.total.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong></p>
   </article>;
 }
 

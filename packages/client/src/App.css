@@ -96,3 +96,21 @@
 .payment-page { max-width: 1000px; margin: auto; padding: 40px 24px 64px; }.payment-page header { margin-top: 32px; }.payment-page h1 { font-size: clamp(30px, 5vw, 42px); font-weight: 750; margin: 12px 0; }.payment-page header p { color: #85899a; font-size: 14px; }.payment-placeholder { margin-top: 28px; min-height: 320px; background: white; border: 1px solid #e7e8f0; border-radius: 18px; }
 .home-carousel { margin-bottom: 28px; }.home-carousel > div { height: 440px; box-shadow: none; }.home-carousel h2 { max-width: 650px; }.home-carousel button { flex-shrink: 0; }
 @media(max-width:640px) { .home-carousel { margin-bottom: 16px; }.home-carousel > div { height: 400px; }.home-carousel h2 { font-size: 30px; }.home-carousel .MuiIconButton-root { width: 34px; height: 34px; }.home-carousel p { font-size: 15px; } }
+
+.checkout-button { display: inline-flex; align-items: center; justify-content: center; min-height: 48px; padding: 13px 28px; margin-top: 20px; border: 1px solid #4f46e5; border-radius: 12px; background: #4f46e5; color: #fff; font-weight: 650; box-shadow: 0 4px 12px #4f46e526; transition: background .18s, transform .18s, box-shadow .18s; }
+.checkout-button:hover:not(:disabled) { background: #4338ca; box-shadow: 0 6px 18px #4f46e538; transform: translateY(-1px); }
+.checkout-button:active:not(:disabled) { transform: translateY(0); }
+.checkout-button:disabled { box-shadow: none; }
+.order-success { text-align: center; padding: 28px 12px 12px; animation: order-reveal .45s ease-out both; }
+.order-success p { color: #687087; }
+.order-success-mark { width: 88px; height: 88px; margin: 0 auto 20px; position: relative; }
+.order-success-mark svg { width: 100%; height: 100%; overflow: visible; }
+.order-success-mark circle { fill: #ecfdf5; stroke: #10b981; stroke-width: 2; transform-origin: center; animation: order-pop .5s ease-out both; }
+.order-success-mark path { fill: none; stroke: #059669; stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 45; stroke-dashoffset: 45; animation: order-check .4s .25s ease-out forwards; }
+.success-spark { position: absolute; left: 50%; top: 50%; width: 5px; height: 9px; background: #818cf8; border-radius: 3px; opacity: 0; animation: order-spark .85s .2s ease-out both; }
+.success-spark:nth-of-type(even) { background: #34d399; }
+@keyframes order-reveal { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes order-pop { from { transform: scale(.6); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+@keyframes order-check { to { stroke-dashoffset: 0; } }
+@keyframes order-spark { 0% { opacity: 0; transform: rotate(var(--spark-angle)) translateY(-30px) scale(.5); } 25% { opacity: 1; } 100% { opacity: 0; transform: rotate(var(--spark-angle)) translateY(-75px) scale(.3); } }
+@media (prefers-reduced-motion: reduce) { .order-success, .order-success-mark circle, .order-success-mark path, .success-spark { animation: none; }.order-success-mark path { stroke-dashoffset: 0; }.success-spark { display: none; }.checkout-button { transition: none; } }

@@ -192,7 +192,7 @@ const AddCart = () => {
                             {item.category || "uncategorized"}
                           </p>
                           <p className="text-lg font-bold text-green-600">
-                            ₹{(item.price || 0).toLocaleString()}
+                            ${(item.price || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </p>
                         </div>
 
@@ -274,7 +274,7 @@ const AddCart = () => {
                   <span>
                     Subtotal ({cartItems.filter(Boolean).length} items)
                   </span>
-                  <span>₹{(totalPrice || 0).toLocaleString()}</span>
+                  <span>${(totalPrice || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 </div>
                 <div className="flex justify-between text-gray-600">
                   <span>Shipping</span>
@@ -282,12 +282,12 @@ const AddCart = () => {
                 </div>
                 <div className="flex justify-between text-gray-600">
                   <span>Tax</span>
-                  <span>₹0</span>
+                  <span>$0.00</span>
                 </div>
                 <hr className="border-gray-200" />
                 <div className="flex justify-between text-lg font-bold text-gray-800">
                   <span>Total</span>
-                  <span>₹{(totalPrice || 0).toLocaleString()}</span>
+                  <span>${(totalPrice || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 </div>
               </div>
 
