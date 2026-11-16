@@ -114,3 +114,21 @@
 @keyframes order-check { to { stroke-dashoffset: 0; } }
 @keyframes order-spark { 0% { opacity: 0; transform: rotate(var(--spark-angle)) translateY(-30px) scale(.5); } 25% { opacity: 1; } 100% { opacity: 0; transform: rotate(var(--spark-angle)) translateY(-75px) scale(.3); } }
 @media (prefers-reduced-motion: reduce) { .order-success, .order-success-mark circle, .order-success-mark path, .success-spark { animation: none; }.order-success-mark path { stroke-dashoffset: 0; }.success-spark { display: none; }.checkout-button { transition: none; } }
+
+.order-rating-form { display: flex; align-items: flex-start; flex-direction: column; gap: 10px; margin: 14px 0 20px; padding: 16px; border: 1px solid #e7e8f0; border-radius: 12px; background: #fafbfe; }
+.order-rating-form label { font-size: 14px; font-weight: 600; }
+.order-rating-form textarea { width: 100%; max-width: 520px; padding: 10px 12px; border: 1px solid #dddfea; border-radius: 8px; background: white; font-size: 14px; resize: vertical; }
+.order-rating-form .checkout-button { min-height: 40px; margin-top: 0; padding: 9px 18px; font-size: 13px; }
+.order-rating-form p { color: #b91c1c; font-size: 13px; }
+.order-rating-saved { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; padding: 12px 0 18px; font-size: 13px; color: #687087; }
+
+.product-review-button { flex-wrap: wrap; gap: 4px; text-align: left; padding: 4px 0; border-radius: 4px; }
+.review-link-label { color: #4f46e5; text-decoration: underline; text-underline-offset: 3px; font-size: 13px; font-weight: 600; }
+.product-review-button .review-link-label { margin-left: 6px; }
+.product-review-button:hover .review-link-label, .review-link-label:hover { color: #3730a3; }
+.review-summary { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; }
+.review-summary > span:last-child { color: #687087; }
+.customer-review { border-top: 1px solid #e7e8f0; padding: 18px 0; }
+.customer-review-heading { display: flex; justify-content: space-between; gap: 16px; margin-bottom: 8px; }
+.customer-review time, .customer-review .rating-only { color: #687087; font-size: 13px; }
+.customer-review p { margin-top: 8px; white-space: pre-wrap; overflow-wrap: anywhere; }

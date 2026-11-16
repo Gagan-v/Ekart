@@ -1,10 +1,11 @@
 import { apiUrl } from "../api/config";
 import { apiFetch } from "../api/config";
 import { useSearchParams } from "react-router-dom";
+import ProductReviews from "../components/ProductReviews";
 import ProductFilters from "../components/ProductFilters";
 import ProductImageGallery from "../components/ProductImageGallery";
 import { filterProducts } from "../utils/filterProducts";
-import { Dialog, Snackbar, Alert } from "@mui/material";
+import { Dialog, Snackbar, Alert, Rating } from "@mui/material";
 import { useState, useEffect } from "react";
 
 import axios from "axios";
@@ -28,6 +29,7 @@ const Products = ({ category = "" }) => {
   const selectedProduct = productId
     ? products.find(product => product._id === productId) || null
     : clickedProduct;
+  const [reviewProduct, setReviewProduct] = useState(null);
   const [notice, setNotice] = useState("");
 
 
@@ -135,39 +137,7 @@ const Products = ({ category = "" }) => {
     setSelectedProduct(null);
   };
 
-  // Render star rating
-  const renderStars = (rating) => {
-    const stars = [];
-    const fullStars = Math.floor(rating);
-    const hasHalfStar = rating % 1 !== 0;
-
-    for (let i = 0; i < fullStars; i++) {
-      stars.push(
-        <span key={i} className="text-yellow-400">
-          ★
-        </span>
-      );
-    }
-
-    if (hasHalfStar) {
-      stars.push(
-        <span key="half" className="text-yellow-400">
-          ☆
-        </span>
-      );
-    }
-
-    const emptyStars = 5 - Math.ceil(rating);
-    for (let i = 0; i < emptyStars; i++) {
-      stars.push(
-        <span key={`empty-${i}`} className="text-gray-300">
-          ★
-        </span>
-      );
-    }
-
-    return stars;
-  };
+  const renderStars = rating => <Rating value={rating || 0} precision={0.1} readOnly size="small" />;
 
   if (loading) {
     return (
@@ -245,16 +215,15 @@ const Products = ({ category = "" }) => {
                   </h3>
 
                   {/* Rating */}
-                  {product.averageRating > 0 && (
-                    <div className="flex items-center mb-3">
+                  <button type="button" className="product-review-button flex items-center mb-3" aria-label={`Read reviews for ${product.title}`} onClick={event => { event.stopPropagation(); setReviewProduct(product); }}>
                       <div className="flex items-center">
                         {renderStars(product.averageRating)}
                       </div>
                       <span className="ml-2 text-sm text-gray-600">
-                        ({product.reviewCount} reviews)
+                        {(product.averageRating || 0).toFixed(1)}/5 ({product.reviewCount || 0} {product.reviewCount === 1 ? "rating" : "ratings"})
                       </span>
-                    </div>
-                  )}
+                      <span className="review-link-label">Read reviews</span>
+                  </button>
 
                   {/* Specifications */}
                   {product.specs && product.specs.length > 0 && (
@@ -352,12 +321,10 @@ const Products = ({ category = "" }) => {
                           {selectedProduct.averageRating || 0}/5
                         </span>
                         <span className="ml-2 text-gray-600">
-                          ({selectedProduct.reviewCount || 0} reviews)
+                          ({selectedProduct.reviewCount || 0} {selectedProduct.reviewCount === 1 ? "rating" : "ratings"})
                         </span>
                       </div>
-                      <p className="text-sm text-gray-600">
-                        Be the first to review this product!
-                      </p>
+                      <button type="button" className="review-link-label" onClick={() => setReviewProduct(selectedProduct)}>Read customer reviews</button>
                     </div>
 
                     {/* Specifications */}
@@ -419,6 +386,7 @@ const Products = ({ category = "" }) => {
             </div>
           </Dialog>
         )}
+        {reviewProduct && <ProductReviews key={reviewProduct._id} product={reviewProduct} onClose={() => setReviewProduct(null)} />}
         <Snackbar open={Boolean(notice)} autoHideDuration={3500} onClose={() => setNotice("")} anchorOrigin={{ vertical: "bottom", horizontal: "center" }}><Alert severity="success" onClose={() => setNotice("")}>{notice}</Alert></Snackbar>
       </div>
     </div>

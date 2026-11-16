@@ -1,18 +1,23 @@
+import mongoose from "mongoose";
 import ProductReview from "../model/ProductReview.js";
 import Product from "../model/Product.js";
 
 // Add a new review for a product
 export const addReview = async (req, res) => {
   try {
-    const { productId, rating, comment } = req.body;
-    const userId = req.user.id; // Assuming user is authenticated and user ID is in req.user
+    const { productId, rating, comment = "" } = req.body ?? {};
+    const userId = req.user._id;
 
     // Validate input
-    if (!productId || !Number.isInteger(rating) || rating < 1 || rating > 5 || typeof comment !== "string" || !comment.trim() || comment.length > 3000) {
+    if (!mongoose.isValidObjectId(productId) || !Number.isInteger(rating) || rating < 1 || rating > 5 || typeof comment !== "string" || comment.length > 500) {
       return res.status(400).json({
         success: false,
-        message: "Product ID, rating, and comment are required",
+        message: "Choose a valid product and 1–5 whole stars. Comments must be at most 500 characters.",
       });
+    }
+
+    if (!req.user.orders?.some(order => order.items.some(item => String(item.productId) === String(productId)))) {
+      return res.status(403).json({ success: false, message: "You can only rate products you have ordered" });
     }
 
     // Check if product exists
@@ -31,9 +36,9 @@ export const addReview = async (req, res) => {
     });
 
     if (existingReview) {
-      return res.status(400).json({
+      return res.status(409).json({
         success: false,
-        message: "You have already reviewed this product",
+        message: "You have already rated this product",
       });
     }
 
@@ -56,6 +61,7 @@ export const addReview = async (req, res) => {
       data: review,
     });
   } catch (error) {
+    if (error.code === 11000) return res.status(409).json({ success: false, message: "You have already rated this product" });
     console.error("Error adding review:", error);
     res.status(500).json({
       success: false,
@@ -71,7 +77,7 @@ export const getProductReviews = async (req, res) => {
     const { productId } = req.params;
 
     // Validate product ID
-    if (!productId) {
+    if (!mongoose.isValidObjectId(productId)) {
       return res.status(400).json({
         success: false,
         message: "Product ID is required",
@@ -187,3 +193,13 @@ export const deleteReview = async (req, res) => {
     });
   }
 };
+
+// Only return ratings belonging to the verified customer session.
+export async function getMyReviews(req, res) {
+  try {
+    const reviews = await ProductReview.find({ userId: req.user._id }).select("productId rating comment").lean();
+    return res.json({ reviews });
+  } catch {
+    return res.status(500).json({ message: "Could not load your ratings" });
+  }
+}
